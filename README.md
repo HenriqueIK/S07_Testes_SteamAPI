@@ -94,16 +94,14 @@ Testa o endpoint `/ISteamUser/GetPlayerSummaries/v2/`.
 
 Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 
-> ⚠️ **Em revisão** — os testes desta collection dependem de jogos específicos estarem na janela de 14 dias de jogos recentes do usuário, o que os torna frágeis. Uma nova versão com validações estruturais independentes do usuário está sendo desenvolvida.
-
 | ID | Tipo | Descrição |
 |---|---|---|
-| TC-009 | ✅ Feliz | Valida que Persona 4 Golden está nos jogos recentes |
-| TC-010 | ✅ Feliz | Valida o tempo de jogo total do Resident Evil 4 |
-| TC-011 | ✅ Feliz | Valida a URL do ícone de Kingdom Come: Deliverance |
-| TC-012 | ❌ Triste | Simula o `appid` de Persona 4 com valor errado (0 em vez de 1113000) |
-| TC-013 | ❌ Triste | Simula nome do jogo ELDEN RING com valor errado ("ELDEN RINGUE") |
-| TC-014 | ❌ Triste | Simula `total_count = 10` em vez do valor real esperado (8) |
+| TC-009 | ✅ Feliz | Valida que todos os jogos recentes têm `playtime_2weeks` maior que zero |
+| TC-010 | ✅ Feliz | Valida que `total_count` é consistente com o tamanho real da lista retornada |
+| TC-011 | ✅ Feliz | Valida que `img_icon_url` de cada jogo é um hash hex válido de 40 caracteres |
+| TC-012 | ❌ Triste | Simula `playtime_2weeks = 0` em jogo recente (por definição nunca pode ser zero) |
+| TC-013 | ❌ Triste | Simula `total_count = 999` e verifica que não bate com o tamanho real da lista |
+| TC-014 | ❌ Triste | Simula `img_icon_url` com valor malformado que não segue o padrão hex de 40 caracteres |
 
 ---
 
