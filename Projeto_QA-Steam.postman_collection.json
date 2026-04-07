@@ -1,0 +1,198 @@
+{
+  "info": {
+    "_postman_id": "53db4cf8-1d51-42e9-b552-6afc8a78f90d",
+    "name": "Projeto_QA-Steam",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53531244",
+    "_collection_link": "https://go.postman.co/collection/53531244-53db4cf8-1d51-42e9-b552-6afc8a78f90d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Consultar-Jogos-possuidos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "\r",
+              "pm.test(\" TC-001 - Caminho Feliz: Validar formato do tempo de jogo\", function() {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var primeirojogo = jsonData.response.games[0];\r",
+              "\r",
+              "    // vendo se existe playtime forever no primeiro jogo\r",
+              "    pm.expect(primeirojogo).to.have.property('playtime_forever');\r",
+              "    // vendo se o formato do campo playtime forever está correto\r",
+              "    pm.expect(primeirojogo.playtime_forever).to.be.a('number');\r",
+              "\r",
+              "    // As horas não podem ser negativas\r",
+              "    pm.expect(primeirojogo.playtime_forever).to.be.at.least(0);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"TC-002 - Caminho Feliz: Retorno com sucesso e lista de jogos\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.response.to.have.status(200);\r",
+              "    pm.expect(jsonData.response).to.have.property('games');\r",
+              "    pm.expect(jsonData.response.game_count).to.be.at.least(1);\r",
+              "});\r",
+              "\r",
+              "// Jogos gratuitos não devem estar na lista de jogos do usuário. Exemplo: CS2 (appid: 730) sem o parametro\r",
+              "pm.test(\"TC-003 -Caminho Feliz: Validar se jogo gratuito (CS2) não está na lista\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var games = jsonData.response.games;\r",
+              "    \r",
+              "    var encontrouJogo = games.find(game => game.appid === 730);\r",
+              "    \r",
+              "    pm.expect(encontrouJogo).to.be.undefined;\r",
+              "});\r",
+              "\r",
+              "pm.test(\"TC-004 - Caminho Feliz: Validar se a contagem de jogos bate com a lista\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var contagemDeclarada = jsonData.response.game_count;\r",
+              "    var tamanhoRealDaLista = jsonData.response.games.length;\r",
+              "\r",
+              "    pm.expect(tamanhoRealDaLista).to.eql(contagemDeclarada);\r",
+              "});\r",
+              "\r",
+              "\r",
+              "pm.test(\"TC-005 - Caminho Triste: Validar bloqueio com chave inválida\", function () {\r",
+              "    // 1. O Status Code NÃO pode ser 200\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);\r",
+              "    \r",
+              "    // 2. Validar a mensagem amigável de erro (se houver)\r",
+              "    // Algumas APIs retornam JSON de erro, outras apenas o status.\r",
+              "    console.log(\"Status recebido: \" + pm.response.status);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"TC006 - Caminho Triste: Validar resposta para SteamID em formato de texto\", function () {\r",
+              "    var responseCode = pm.response.code;\r",
+              "    \r",
+              "    pm.expect(responseCode).to.be.below(500);\r",
+              "\r",
+              "    // Verificamos se ele barrou a requisição ou se apenas retornou vazio\r",
+              "    if (responseCode === 400) {\r",
+              "        console.log(\"Sucesso: A API validou o erro de formato (Bad Request).\");\r",
+              "    } else if (responseCode === 200) {\r",
+              "        var jsonData = pm.response.json();\r",
+              "        // Se retornar 200, a resposta deve vir sem a lista de jogos\r",
+              "        pm.expect(jsonData.response).to.not.have.property('games');\r",
+              "        console.log(\"A API aceitou o texto, mas não retornou dados de jogos.\");\r",
+              "    }\r",
+              "});\r",
+              "\r",
+              "pm.test(\"TC-007 - Caminho Triste: Validar bloqueio de método HTTP não permitido\", function () {\r",
+              "    // Esperamos que o servidor barre métodos diferentes de GET\r",
+              "    pm.expect(pm.response.code).to.equal(405);\r",
+              "    console.log(\"Servidor barrou corretamente o método não permitido.\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"TC-008 - Caminho Triste: Validar resiliência com parâmetros de filtro inválidos\", function () {\r",
+              "    // O servidor deve tratar o erro ou ignorar, mas nunca retornar 500\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);\r",
+              "    \r",
+              "    if(pm.response.code === 200) {\r",
+              "        var jsonData = pm.response.json();\r",
+              "        // Se enviamos um valor doido no include_appinfo, \r",
+              "        // validamos se ele NÃO retornou o nome do jogo (comportamento padrão de erro)\r",
+              "        pm.expect(jsonData.response.games[0]).to.not.have.property('name');\r",
+              "    }\r",
+              "});\r",
+              "\r",
+              "\r",
+              "\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "let currentId = pm.collectionVariables.get(\"steam_id\");\r",
+              "\r",
+              "// Regra: SteamID64 deve ter exatamente 17 dígitos\r",
+              "if (currentId && currentId.length !== 17) {\r",
+              "    console.error(\"ABORTANDO: O SteamID fornecido é inválido (não tem 17 dígitos).\");\r",
+              "    \r",
+              "    // Forçar um erro proposital para não gastar sua cota de API à toa\r",
+              "    throw new Error(\"SteamID inválido detectado no Pre-request.\");\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "user-agent": true
+        }
+      },
+      "request": {
+        "auth": {
+          "type": "apikey",
+          "apikey": [
+            {
+              "key": "key",
+              "value": "5EB95637A5757BF1BC3460F566EF885C",
+              "type": "string"
+            },
+            {
+              "key": "value",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseurl}}&steamid={{steam_id}}&format=json&include_appinfo=1",
+          "host": [
+            "{{baseurl}}&steamid={{steam_id}}&format=json&include_appinfo=1"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    }
+  ]
+}
