@@ -125,3 +125,17 @@ S07_Testes_SteamAPI/
 | HenriqueIK | `main` |
 | Thiago | `thiago-alteracoes` |
 | Pedro Frugoli | `pedro-frugoli` |
+
+---
+
+## Uso de Inteligência Artificial
+
+Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utilizadas versões recentes do modelo **Claude** (Anthropic), acessado tanto diretamente no **Postman** (para escrita e revisão dos scripts de teste) quanto via **GitHub Copilot** no VS Code (para correções, padronização e documentação), para auxiliar nas seguintes tarefas:
+
+- Revisão e correção dos testes das collections Postman
+- Identificação de bugs estruturais (URL malformada, chave hardcoded, variáveis incorretas)
+- Sugestão de casos de teste robustos e independentes do usuário
+- Padronização de nomes de arquivos e scripts
+- Elaboração deste README
+
+Todo o código gerado foi revisado, validado e ajustado pelos membros do grupo antes de ser commitado.
