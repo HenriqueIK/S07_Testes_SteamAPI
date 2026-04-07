@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "newman run tests-summaries.postman_collection.json -e \"Steam API.postman_environment.json\"",
-    "test:jogos": "newman run Teste_Steam_JogosRecentes.postman_collection.json -e \"Steam API.postman_environment.json\"",
-    "test:all": "newman run tests-summaries.postman_collection.json -e \"Steam API.postman_environment.json\" & newman run Teste_Steam_JogosRecentes.postman_collection.json -e \"Steam API.postman_environment.json\" & newman run Projeto_QA-Steam.postman_collection.json -e \"Steam API.postman_environment.json\"",
-    "test:adquiridos": "newman run Projeto_QA-Steam.postman_collection.json -e \"Steam API.postman_environment.json\""
+    "test:summaries": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\"",
+    "test:recent": "newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\"",
+    "test:owned": "newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\"",
+    "test:all": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" & newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" & newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\""
   },
   "repository": {
     "type": "git",
