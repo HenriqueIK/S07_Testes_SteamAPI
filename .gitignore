@@ -1,0 +1,20 @@
+# Dependências
+node_modules/
+
+# Environments do Postman (contêm API keys e dados sensíveis)
+*.postman_environment.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Relatórios gerados pelo Newman
+newman/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/

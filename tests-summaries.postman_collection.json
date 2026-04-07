@@ -1,0 +1,101 @@
+{
+  "info": {
+    "_postman_id": "9e51cafc-5da7-4d11-881b-182636bd1db9",
+    "name": "tests-summaries",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53794744",
+    "_collection_link": "https://go.postman.co/collection/53794744-9e51cafc-5da7-4d11-881b-182636bd1db9?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "GetPlayerSummaries",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// TC-015: Valida que o retorno contém a lista de players com ao menos 1 jogador",
+              "pm.test(\"TC-015: Valida que o retorno contém a lista de players com ao menos 1 jogador\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.response.players).to.be.an(\"array\").with.lengthOf.at.least(1);",
+              "});",
+              "",
+              "// TC-016: Valida que os campos obrigatórios do perfil existem",
+              "pm.test(\"TC-016: Valida que os campos obrigatórios do perfil existem (steamid, personaname, profileurl, avatar)\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var player = jsonData.response.players[0];",
+              "    pm.expect(player).to.have.property(\"steamid\");",
+              "    pm.expect(player).to.have.property(\"personaname\");",
+              "    pm.expect(player).to.have.property(\"profileurl\");",
+              "    pm.expect(player).to.have.property(\"avatar\");",
+              "});",
+              "",
+              "// TC-017: Valida que o communityvisibilitystate é um número válido (1, 2 ou 3)",
+              "pm.test(\"TC-017: Valida que o communityvisibilitystate é um número válido (1, 2 ou 3)\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var player = jsonData.response.players[0];",
+              "    pm.expect([1, 2, 3]).to.include(player.communityvisibilitystate);",
+              "});",
+              "",
+              "// TC-018: Simula que o personaname retornado é diferente do esperado (caminho triste de validação de dado)",
+              "pm.test(\"TC-018: Simula que o personaname retornado é diferente do esperado\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var player = jsonData.response.players[0];",
+              "    player.personaname = \"NomeErrado\";",
+              "    pm.expect(player.personaname).to.eql(\"SeuNomeReal\");",
+              "});",
+              "",
+              "// TC-019: Simula que o communityvisibilitystate é 1 (privado) quando deveria ser 3 (público)",
+              "pm.test(\"TC-019: Simula que o communityvisibilitystate é 1 (privado) quando deveria ser 3 (público)\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var player = jsonData.response.players[0];",
+              "    player.communityvisibilitystate = 1;",
+              "    pm.expect(player.communityvisibilitystate).to.eql(3);",
+              "});",
+              "",
+              "// TC-020: Simula que a lista de players está vazia quando deveria ter jogadores",
+              "pm.test(\"TC-020: Simula que a lista de players está vazia quando deveria ter jogadores\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var players = jsonData.response.players;",
+              "    // Força a lista como vazia para simular ausência de jogadores",
+              "    players = [];",
+              "    pm.expect(players).to.have.lengthOf.at.least(1);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/ISteamUser/GetPlayerSummaries/v2/?key={{steam_api_key}}&steamids={{steam_id}}",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "ISteamUser",
+            "GetPlayerSummaries",
+            "v2",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamids",
+              "value": "{{steam_id}}"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl -X GET \"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={{steam_api_key}}&steamids={{steam_id}}\""
+      },
+      "response": []
+    }
+  ]
+}

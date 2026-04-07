@@ -1,0 +1,26 @@
+{
+  "name": "s07_testes_steamapi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "newman run tests-summaries.postman_collection.json -e \"Steam API.postman_environment.json\"",
+    "test:jogos": "newman run Teste_Steam_JogosRecentes.postman_collection.json -e \"Steam API.postman_environment.json\"",
+    "test:all": "newman run tests-summaries.postman_collection.json -e \"Steam API.postman_environment.json\" && newman run Teste_Steam_JogosRecentes.postman_collection.json -e \"Steam API.postman_environment.json\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HenriqueIK/S07_Testes_SteamAPI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/HenriqueIK/S07_Testes_SteamAPI/issues"
+  },
+  "homepage": "https://github.com/HenriqueIK/S07_Testes_SteamAPI#readme",
+  "devDependencies": {
+    "newman": "^6.2.2"
+  }
+}
