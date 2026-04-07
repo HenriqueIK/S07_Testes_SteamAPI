@@ -48,14 +48,16 @@
               "    pm.expect(achou.appid).to.eql(1113000);",
               "});",
               "",
-              "pm.test(\"TC-013 - Caminho Triste: Simulando o tempo de jogo Rain World igual a 0 no Linux\", function(){",
+              "pm.test(\"TC-013 - Caminho Triste: Leu o nome ELDEN RING errado\", function(){",
               "    var resposta = pm.response.json();",
               "    var games = resposta.response.games;",
-              "    var achou = games.find(g => g.name === \"Rain World\");",
+              "    var achou = games.find(g => g.name === \"ELDEN RING\");",
               "",
-              "    achou.playtime_linux_forever = 0; // colocando o valor linux playtime igual a 0",
+              "    pm.expect(achou).to.exist;",
               "",
-              "    pm.expect(achou.playtime_linux_forever).to.eql(119);",
+              "    achou.name = \"ELDEN RINGUE\"; // Mudando para Elden Ringue",
+              "",
+              "    pm.expect(achou.name).to.eql(\"ELDEN RING\");",
               "});",
               "",
               "pm.test(\"TC-014 - Caminho Triste: Simular o total_count = 10, em vez de 8\", function() {",
@@ -96,11 +98,12 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseurl}}IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steamKey}}&steamid={{player_id}}&format=json",
+          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steamKey}}&steamid={{player_id}}&format=json",
           "host": [
             "{{baseurl}}"
           ],
           "path": [
+            "IPlayerService",
             "GetRecentlyPlayedGames",
             "v0001",
             ""
@@ -108,7 +111,7 @@
           "query": [
             {
               "key": "key",
-              "value": "{{steamKey}}" 
+              "value": "{{steamKey}}"
             },
             {
               "key": "steamid",
