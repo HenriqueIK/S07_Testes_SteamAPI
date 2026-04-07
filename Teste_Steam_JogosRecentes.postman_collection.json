@@ -98,7 +98,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steamKey}}&steamid={{player_id}}&format=json",
+          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steam_api_key}}&steamid={{steam_id}}&format=json",
           "host": [
             "{{baseurl}}"
           ],
@@ -111,11 +111,11 @@
           "query": [
             {
               "key": "key",
-              "value": "{{steamKey}}"
+              "value": "{{steam_api_key}}"
             },
             {
               "key": "steamid",
-              "value": "{{player_id}}"
+              "value": "{{steam_id}}"
             },
             {
               "key": "format",
