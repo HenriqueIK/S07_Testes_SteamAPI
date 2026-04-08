@@ -4,6 +4,9 @@ node_modules/
 # Environments do Postman (contêm API keys e dados sensíveis)
 *.postman_environment.json
 
+# Relatórios gerados pelo Newman
+reports/
+
 # Logs
 logs/
 *.log

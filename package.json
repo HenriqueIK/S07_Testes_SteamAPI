@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test:summaries": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\"",
-    "test:recent": "newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\"",
-    "test:owned": "newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\"",
-    "test:all": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" & newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" & newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\""
+    "test:summaries": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/player-summaries.html --insecure",
+    "test:recent": "newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/recently-played.html --insecure",
+    "test:owned": "newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/owned-games.html --insecure",
+    "test:all": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/player-summaries.html --insecure & newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/recently-played.html --insecure & newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/owned-games.html --insecure"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/HenriqueIK/S07_Testes_SteamAPI#readme",
   "devDependencies": {
-    "newman": "^6.2.2"
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1"
   }
 }
