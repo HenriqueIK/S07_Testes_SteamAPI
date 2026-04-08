@@ -54,6 +54,8 @@ Abra o arquivo `steam_api.postman_environment.json` e substitua os placeholders:
 | `npm run test:owned` | Roda os testes de jogos possuídos (TC-001 a TC-008) |
 | `npm run test:all` | Roda todas as collections em paralelo |
 
+Após cada execução, um relatório HTML é gerado automaticamente na pasta `reports/` (ignorada pelo `.gitignore`).
+
 ---
 
 ## Casos de teste
@@ -113,7 +115,9 @@ S07_Testes_SteamAPI/
 ├── recently-played.postman_collection.json     # Testes TC-009 a TC-014
 ├── player-summaries.postman_collection.json    # Testes TC-015 a TC-020
 ├── steam-api.postman_environment.example.json  # Modelo de environment (sem dados sensíveis)
-└── package.json                                # Scripts de execução via Newman
+├── package.json                                # Scripts de execução via Newman
+├── package-lock.json                           # Lockfile de dependências
+└── .gitignore                                  # Arquivos ignorados (environment real, reports/)
 ```
 
 ---
