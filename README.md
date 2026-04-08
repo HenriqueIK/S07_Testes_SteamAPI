@@ -130,7 +130,7 @@ S07_Testes_SteamAPI/
 
 ## Uso de Inteligência Artificial
 
-Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utilizadas versões recentes do modelo **Claude** (Anthropic), acessado tanto diretamente no **Postman** (para escrita e revisão dos scripts de teste) quanto via **GitHub Copilot** no VS Code (para correções, padronização e documentação), para auxiliar nas seguintes tarefas:
+Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utilizadas versões recentes do modelo **Claude** (Anthropic), **ChatGPT** (OpenAI) e **Gemini** (Google), acessado tanto diretamente no **Postman** (para escrita e revisão dos scripts de teste) quanto via **GitHub Copilot** no VS Code (para correções, padronização e documentação), para auxiliar nas seguintes tarefas:
 
 - Revisão e correção dos testes das collections Postman
 - Identificação de bugs estruturais (URL malformada, chave hardcoded, variáveis incorretas)
