@@ -35,31 +35,6 @@
               "    var jsonData = pm.response.json();",
               "    var player = jsonData.response.players[0];",
               "    pm.expect([1, 2, 3]).to.include(player.communityvisibilitystate);",
-              "});",
-              "",
-              "// TC-018: Simula que o personaname retornado é diferente do esperado (caminho triste de validação de dado)",
-              "pm.test(\"TC-018: Simula que o personaname retornado é diferente do esperado\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    var player = jsonData.response.players[0];",
-              "    player.personaname = \"NomeErrado\";",
-              "    pm.expect(player.personaname).to.eql(\"SeuNomeReal\");",
-              "});",
-              "",
-              "// TC-019: Simula que o communityvisibilitystate é 1 (privado) quando deveria ser 3 (público)",
-              "pm.test(\"TC-019: Simula que o communityvisibilitystate é 1 (privado) quando deveria ser 3 (público)\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    var player = jsonData.response.players[0];",
-              "    player.communityvisibilitystate = 1;",
-              "    pm.expect(player.communityvisibilitystate).to.eql(3);",
-              "});",
-              "",
-              "// TC-020: Simula que a lista de players está vazia quando deveria ter jogadores",
-              "pm.test(\"TC-020: Simula que a lista de players está vazia quando deveria ter jogadores\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    var players = jsonData.response.players;",
-              "    // Força a lista como vazia para simular ausência de jogadores",
-              "    players = [];",
-              "    pm.expect(players).to.have.lengthOf.at.least(1);",
               "});"
             ],
             "type": "text/javascript",
@@ -94,6 +69,140 @@
           ]
         },
         "description": "Generated from cURL: curl -X GET \"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={{steam_api_key}}&steamids={{steam_id}}\""
+      },
+      "response": []
+    },
+    {
+      "name": "TC-018 - Chave Inválida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-018 - Caminho Triste: Validar bloqueio com chave inválida\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/ISteamUser/GetPlayerSummaries/v2/?key=chave_invalida_123&steamids={{steam_id}}",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "ISteamUser",
+            "GetPlayerSummaries",
+            "v2",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "chave_invalida_123"
+            },
+            {
+              "key": "steamids",
+              "value": "{{steam_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-019 - SteamID Inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-019 - Caminho Triste: Validar que SteamID inexistente retorna lista vazia\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.response.players).to.be.an('array').with.lengthOf(0);",
+              "    console.log(\"Players retornados: \" + jsonData.response.players.length);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/ISteamUser/GetPlayerSummaries/v2/?key={{steam_api_key}}&steamids=00000000000000001",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "ISteamUser",
+            "GetPlayerSummaries",
+            "v2",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamids",
+              "value": "00000000000000001"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-020 - Método HTTP Não Permitido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-020 - Caminho Triste: Validar bloqueio de método HTTP não permitido\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([403, 405]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/ISteamUser/GetPlayerSummaries/v2/?key={{steam_api_key}}&steamids={{steam_id}}",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "ISteamUser",
+            "GetPlayerSummaries",
+            "v2",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamids",
+              "value": "{{steam_id}}"
+            }
+          ]
+        }
       },
       "response": []
     }

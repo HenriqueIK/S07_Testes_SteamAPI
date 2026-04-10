@@ -36,24 +36,6 @@
               "    games.forEach(function(game) {",
               "        pm.expect(game.img_icon_url).to.match(/^[a-f0-9]{40}$/);",
               "    });",
-              "});",
-              "",
-              "pm.test(\"TC-012 - Caminho Triste: Simular playtime_2weeks zerado em jogo recente\", function () {",
-              "    var games = pm.response.json().response.games || [{ playtime_2weeks: 0 }];",
-              "    games[0].playtime_2weeks = 0;",
-              "    pm.expect(games[0].playtime_2weeks).to.be.above(0);",
-              "});",
-              "",
-              "pm.test(\"TC-013 - Caminho Triste: Simular total_count incorreto\", function () {",
-              "    var resposta = pm.response.json().response;",
-              "    resposta.total_count = 999;",
-              "    pm.expect(resposta.total_count).to.eql(resposta.games ? resposta.games.length : 0);",
-              "});",
-              "",
-              "pm.test(\"TC-014 - Caminho Triste: Simular img_icon_url com formato inválido\", function () {",
-              "    var games = pm.response.json().response.games || [{ img_icon_url: \"\" }];",
-              "    games[0].img_icon_url = \"nao-e-um-hash-valido\";",
-              "    pm.expect(games[0].img_icon_url).to.match(/^[a-f0-9]{40}$/);",
               "});"
             ],
             "type": "text/javascript",
@@ -85,6 +67,154 @@
           ]
         },
         "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steam_api_key}}&steamid={{steam_id}}&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetRecentlyPlayedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamid",
+              "value": "{{steam_id}}"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-012 - Chave Inválida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-012 - Caminho Triste: Validar bloqueio com chave inválida\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key=chave_invalida_123&steamid={{steam_id}}&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetRecentlyPlayedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "chave_invalida_123"
+            },
+            {
+              "key": "steamid",
+              "value": "{{steam_id}}"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-013 - SteamID Inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-013 - Caminho Triste: Validar resposta para SteamID em formato de texto\", function () {",
+              "    pm.expect(pm.response.code).to.be.below(500);",
+              "    if (pm.response.code === 200) {",
+              "        var jsonData = pm.response.json();",
+              "        pm.expect(jsonData.response).to.not.have.property('games');",
+              "    }",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steam_api_key}}&steamid=usuario_invalido&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetRecentlyPlayedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamid",
+              "value": "usuario_invalido"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-014 - Método HTTP Não Permitido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-014 - Caminho Triste: Validar bloqueio de método HTTP não permitido\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([403, 405]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
         "header": [],
         "url": {
           "raw": "{{baseurl}}/IPlayerService/GetRecentlyPlayedGames/v0001/?key={{steam_api_key}}&steamid={{steam_id}}&format=json",

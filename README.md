@@ -70,10 +70,10 @@ Testa o endpoint `/IPlayerService/GetOwnedGames/v0001/`.
 | TC-002 | ✅ Feliz | Valida que o retorno é 200 e contém a propriedade `games` |
 | TC-003 | ✅ Feliz | Valida que Dota 2 (F2P) não aparece na lista de jogos possuídos |
 | TC-004 | ✅ Feliz | Valida que `game_count` bate com o tamanho real da lista retornada |
-| TC-005 | ❌ Triste | Simula que a API bloqueia requisições com chave inválida (espera 401/403) |
-| TC-006 | ❌ Triste | Simula que a API rejeita um SteamID em formato de texto (espera resposta sem `games`) |
-| TC-007 | ❌ Triste | Simula que a API bloqueia métodos HTTP diferentes de GET (espera 405) |
-| TC-008 | ❌ Triste | Simula que a API retorna erro ou ignora `include_appinfo` inválido (nunca 500) |
+| TC-005 | ✅ Triste | Envia chave inválida e valida que a API retorna 401 ou 403 |
+| TC-006 | ✅ Triste | Envia SteamID em formato de texto e valida que a API não retorna 500 nem lista de jogos |
+| TC-007 | ✅ Triste | Envia requisição POST e valida que a API bloqueia o método (retorna 403 ou 405) |
+| TC-008 | ✅ Triste | Envia `include_appinfo` inválido e valida que a API nunca retorna 500 |
 
 ---
 
@@ -86,9 +86,9 @@ Testa o endpoint `/ISteamUser/GetPlayerSummaries/v2/`.
 | TC-015 | ✅ Feliz | Valida que o retorno contém ao menos 1 jogador na lista |
 | TC-016 | ✅ Feliz | Valida que os campos obrigatórios do perfil existem (`steamid`, `personaname`, `profileurl`, `avatar`) |
 | TC-017 | ✅ Feliz | Valida que `communityvisibilitystate` é um valor válido (1, 2 ou 3) |
-| TC-018 | ❌ Triste | Simula `personaname` com valor errado para demonstrar falha de validação de dado |
-| TC-019 | ❌ Triste | Simula `communityvisibilitystate = 1` (privado) quando deveria ser 3 (público) |
-| TC-020 | ❌ Triste | Simula lista de players vazia para demonstrar falha de contagem |
+| TC-018 | ✅ Triste | Envia chave inválida e valida que a API retorna 401 ou 403 |
+| TC-019 | ✅ Triste | Envia SteamID inexistente e valida que a API retorna lista de players vazia |
+| TC-020 | ✅ Triste | Envia requisição POST e valida que a API bloqueia o método (retorna 403 ou 405) |
 
 ---
 
@@ -101,9 +101,9 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 | TC-009 | ✅ Feliz | Valida que todos os jogos recentes têm `playtime_2weeks` maior que zero |
 | TC-010 | ✅ Feliz | Valida que `total_count` é consistente com o tamanho real da lista retornada |
 | TC-011 | ✅ Feliz | Valida que `img_icon_url` de cada jogo é um hash hex válido de 40 caracteres |
-| TC-012 | ❌ Triste | Simula `playtime_2weeks = 0` em jogo recente (por definição nunca pode ser zero) |
-| TC-013 | ❌ Triste | Simula `total_count = 999` e verifica que não bate com o tamanho real da lista |
-| TC-014 | ❌ Triste | Simula `img_icon_url` com valor malformado que não segue o padrão hex de 40 caracteres |
+| TC-012 | ✅ Triste | Envia chave inválida e valida que a API retorna 401 ou 403 |
+| TC-013 | ✅ Triste | Envia SteamID em formato de texto e valida que a API não retorna 500 nem lista de jogos |
+| TC-014 | ✅ Triste | Envia requisição POST e valida que a API bloqueia o método (retorna 403 ou 405) |
 
 ---
 

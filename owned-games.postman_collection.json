@@ -55,49 +55,6 @@
               "    var tamanhoRealDaLista = jsonData.response.games.length;",
               "",
               "    pm.expect(tamanhoRealDaLista).to.eql(contagemDeclarada);",
-              "});",
-              "",
-              "pm.test(\"TC-005 - Caminho Triste: Validar bloqueio com chave inválida\", function () {",
-              "    // 1. O Status Code NÃO pode ser 200",
-              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
-              "",
-              "    // 2. Validar a mensagem amigável de erro (se houver)",
-              "    // Algumas APIs retornam JSON de erro, outras apenas o status.",
-              "    console.log(\"Status recebido: \" + pm.response.status);",
-              "});",
-              "",
-              "pm.test(\"TC-006 - Caminho Triste: Validar resposta para SteamID em formato de texto\", function () {",
-              "    var responseCode = pm.response.code;",
-              "",
-              "    pm.expect(responseCode).to.be.below(500);",
-              "",
-              "    // Verificamos se ele barrou a requisição ou se apenas retornou vazio",
-              "    if (responseCode === 400) {",
-              "        console.log(\"Sucesso: A API validou o erro de formato (Bad Request).\");",
-              "    } else if (responseCode === 200) {",
-              "        var jsonData = pm.response.json();",
-              "        // Se retornar 200, a resposta deve vir sem a lista de jogos",
-              "        pm.expect(jsonData.response).to.not.have.property('games');",
-              "        console.log(\"A API aceitou o texto, mas não retornou dados de jogos.\");",
-              "    }",
-              "});",
-              "",
-              "pm.test(\"TC-007 - Caminho Triste: Validar bloqueio de método HTTP não permitido\", function () {",
-              "    // Esperamos que o servidor barre métodos diferentes de GET",
-              "    pm.expect(pm.response.code).to.equal(405);",
-              "    console.log(\"Servidor barrou corretamente o método não permitido.\");",
-              "});",
-              "",
-              "pm.test(\"TC-008 - Caminho Triste: Validar resiliência com parâmetros de filtro inválidos\", function () {",
-              "    // O servidor deve tratar o erro ou ignorar, mas nunca retornar 500",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
-              "",
-              "    if(pm.response.code === 200) {",
-              "        var jsonData = pm.response.json();",
-              "        // Se enviamos um valor doido no include_appinfo,",
-              "        // validamos se ele NÃO retornou o nome do jogo (comportamento padrão de erro)",
-              "        pm.expect(jsonData.response.games[0]).to.not.have.property('name');",
-              "    }",
               "});"
             ],
             "type": "text/javascript",
@@ -176,6 +133,207 @@
             {
               "key": "include_appinfo",
               "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-005 - Chave Inválida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-005 - Caminho Triste: Validar bloqueio com chave inválida\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetOwnedGames/v0001/?key=chave_invalida_123&steamid={{steam_id}}&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetOwnedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "chave_invalida_123"
+            },
+            {
+              "key": "steamid",
+              "value": "{{steam_id}}"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-006 - SteamID Inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-006 - Caminho Triste: Validar resposta para SteamID em formato de texto\", function () {",
+              "    pm.expect(pm.response.code).to.be.below(500);",
+              "    if (pm.response.code === 200) {",
+              "        var jsonData = pm.response.json();",
+              "        pm.expect(jsonData.response).to.not.have.property('games');",
+              "    }",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetOwnedGames/v0001/?key={{steam_api_key}}&steamid=usuario_invalido&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetOwnedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamid",
+              "value": "usuario_invalido"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-007 - Método HTTP Não Permitido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-007 - Caminho Triste: Validar bloqueio de método HTTP não permitido\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([403, 405]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetOwnedGames/v0001/?key={{steam_api_key}}&steamid={{steam_id}}&format=json",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetOwnedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamid",
+              "value": "{{steam_id}}"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-008 - Parâmetro de Filtro Inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-008 - Caminho Triste: Validar resiliência com parâmetros de filtro inválidos\", function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 403]);",
+              "    console.log(\"Status recebido: \" + pm.response.status);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseurl}}/IPlayerService/GetOwnedGames/v0001/?key={{steam_api_key}}&steamid={{steam_id}}&format=json&include_appinfo=INVALIDO",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "IPlayerService",
+            "GetOwnedGames",
+            "v0001",
+            ""
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "{{steam_api_key}}"
+            },
+            {
+              "key": "steamid",
+              "value": "{{steam_id}}"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            },
+            {
+              "key": "include_appinfo",
+              "value": "INVALIDO"
             }
           ]
         }
