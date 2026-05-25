@@ -107,17 +107,46 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 
 ---
 
+## Infraestrutura Docker
+
+### Imagem Docker Hub
+
+[hub.docker.com/r/duartefrugoli/steam-api-tests](https://hub.docker.com/r/duartefrugoli/steam-api-tests)
+
+Para baixar e rodar os testes diretamente da imagem publicada, sem precisar clonar o repositório:
+
+```bash
+docker run --rm \
+  -e STEAM_API_KEY=sua_chave \
+  -e STEAM_ID=seu_steamid \
+  duartefrugoli/steam-api-tests:latest
+```
+
+### Construir a imagem localmente
+
+```bash
+docker build -t steam-api-tests:latest .
+```
+
+---
+
 ## Estrutura do projeto
 
 ```
 S07_Testes_SteamAPI/
+├── Dockerfile                                  # Containerização do projeto Newman
+├── .dockerignore                               # Arquivos excluídos da imagem Docker
 ├── owned-games.postman_collection.json         # Testes TC-001 a TC-008
 ├── recently-played.postman_collection.json     # Testes TC-009 a TC-014
 ├── player-summaries.postman_collection.json    # Testes TC-015 a TC-020
 ├── steam-api.postman_environment.example.json  # Modelo de environment (sem dados sensíveis)
 ├── package.json                                # Scripts de execução via Newman
 ├── package-lock.json                           # Lockfile de dependências
-└── .gitignore                                  # Arquivos ignorados (environment real, reports/)
+├── .gitignore                                  # Arquivos ignorados (environment real, reports/)
+└── docs/
+    ├── PLANO_DEVOPS.md                         # Roteiro completo de implementação DevOps
+    ├── commands.md                             # Comandos Docker úteis
+    └── explain_dockerfile.md                   # Explicações sobre o Dockerfile
 ```
 
 ---
