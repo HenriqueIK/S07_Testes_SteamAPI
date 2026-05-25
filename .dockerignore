@@ -1,0 +1,6 @@
+node_modules
+reports
+steam_api.postman_environment.json
+.git
+*.md
+.env
