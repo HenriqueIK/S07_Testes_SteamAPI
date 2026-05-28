@@ -19,8 +19,8 @@ Suíte de testes automatizados para a [Steam Web API](https://steamcommunity.com
 git clone https://github.com/HenriqueIK/S07_Testes_SteamAPI.git
 cd S07_Testes_SteamAPI
 
-# Instale as dependências
-npm install
+# Instale as dependências (usa versões exatas do package-lock.json)
+npm ci
 ```
 
 ---
@@ -113,12 +113,17 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 
 [hub.docker.com/r/duartefrugoli/steam-api-tests](https://hub.docker.com/r/duartefrugoli/steam-api-tests)
 
-Para baixar e rodar os testes diretamente da imagem publicada, sem precisar clonar o repositório:
+Para rodar os testes diretamente da imagem publicada, monte o arquivo de environment local:
 
 ```bash
+# Linux/macOS
 docker run --rm \
-  -e STEAM_API_KEY=sua_chave \
-  -e STEAM_ID=seu_steamid \
+  -v $(pwd)/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro \
+  duartefrugoli/steam-api-tests:latest
+
+# Windows (PowerShell)
+docker run --rm `
+  -v ${PWD}/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro `
   duartefrugoli/steam-api-tests:latest
 ```
 
@@ -136,6 +141,7 @@ docker build -t steam-api-tests:latest .
 S07_Testes_SteamAPI/
 ├── Dockerfile                                  # Containerização do projeto Newman
 ├── .dockerignore                               # Arquivos excluídos da imagem Docker
+├── Jenkinsfile                                 # Pipeline CI/CD (stages: Install, Test, Build, Notify)
 ├── owned-games.postman_collection.json         # Testes TC-001 a TC-008
 ├── recently-played.postman_collection.json     # Testes TC-009 a TC-014
 ├── player-summaries.postman_collection.json    # Testes TC-015 a TC-020
@@ -143,10 +149,13 @@ S07_Testes_SteamAPI/
 ├── package.json                                # Scripts de execução via Newman
 ├── package-lock.json                           # Lockfile de dependências
 ├── .gitignore                                  # Arquivos ignorados (environment real, reports/)
+├── scripts/
+│   └── notify.py                              # Script de notificação por e-mail pós-pipeline
 └── docs/
     ├── PLANO_DEVOPS.md                         # Roteiro completo de implementação DevOps
     ├── commands.md                             # Comandos Docker úteis
-    └── explain_dockerfile.md                   # Explicações sobre o Dockerfile
+    ├── explain_dockerfile.md                   # Explicações sobre o Dockerfile
+    └── explain_notify.md                       # Explicações sobre o script de notificação
 ```
 
 ---
@@ -169,6 +178,7 @@ Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utiliza
 - Identificação de bugs estruturais (URL malformada, chave hardcoded, variáveis incorretas)
 - Sugestão de casos de teste robustos e independentes do usuário
 - Padronização de nomes de arquivos e scripts
+- Geração do `Dockerfile`, `Jenkinsfile` e `scripts/notify.py`
 - Elaboração deste README
 
 Todo o código gerado foi revisado, validado e ajustado pelos membros do grupo antes de ser commitado.
