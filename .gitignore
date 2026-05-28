@@ -21,3 +21,6 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# env do docker compose usar o .example como base
+.env
