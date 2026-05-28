@@ -1,0 +1,316 @@
+# Explicação do Jenkinsfile — Steam API Tests
+
+> Este documento explica bloco a bloco o `Jenkinsfile` criado para o pipeline de CI/CD
+> do projeto S07 Testes Steam API. Leia antes da defesa — o professor vai perguntar.
+
+---
+
+## O arquivo completo
+
+```groovy
+pipeline {
+    agent any
+
+    environment {
+        EMAIL_TO  = "${env.NOTIFY_EMAIL}"
+        SMTP_HOST = "mailhog"
+        SMTP_PORT = "1025"
+        BUILD_URL = "${env.BUILD_URL}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install') {
+            steps {
+                sh 'npm ci'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    npm run test:summaries || true
+                    npm run test:recent    || true
+                    npm run test:owned     || true
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'steam-api-tests.zip', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "python3 scripts/notify.py ${currentBuild.currentResult}"
+        }
+    }
+}
+```
+
+---
+
+## Bloco `environment {}`
+
+```groovy
+environment {
+    EMAIL_TO  = "${env.NOTIFY_EMAIL}"
+    SMTP_HOST = "mailhog"
+    SMTP_PORT = "1025"
+    BUILD_URL = "${env.BUILD_URL}"
+}
+```
+
+Define variáveis de ambiente disponíveis para **todos os stages do pipeline** — funciona
+como um `.env` global. Qualquer `sh` ou script posterior pode ler essas variáveis.
+
+| Variável | Valor | Estratégia | Motivo |
+|---|---|---|---|
+| `EMAIL_TO` | `env.NOTIFY_EMAIL` | Vem de fora | Dado pessoal — não entra no repositório |
+| `SMTP_HOST` | `"mailhog"` | Fixo no código | Nome do container na rede Docker — igual em todos os ambientes |
+| `SMTP_PORT` | `"1025"` | Fixo no código | Porta padrão do MailHog — não muda |
+| `BUILD_URL` | `env.BUILD_URL` | Re-exposta do Jenkins | Nativa do Jenkins, mas precisa ser propagada ao shell para o `notify.py` usar |
+
+`env` é o objeto global do Jenkins que expõe variáveis configuradas fora do Jenkinsfile.
+`NOTIFY_EMAIL` é cadastrada em **Manage Jenkins → Configure System → Global properties**
+— assim o e-mail do grupo nunca aparece no código-fonte. O `${}` é interpolação de string Groovy.
+
+`SMTP_HOST = "mailhog"` funciona porque, dentro da rede Docker (`devops-net`), os
+containers se resolvem pelo nome como se fosse um DNS interno.
+
+---
+
+## Bloco `stages {}`
+
+É o corpo do pipeline. Cada `stage` aparece como uma fase visual na interface do Jenkins,
+com nome, ícone de status (✅ / ❌) e tempo de execução. A ordem importa: se um stage
+falhar, os seguintes são pulados — exceto o `post`, que sempre roda.
+
+---
+
+### Stage 1 — `Checkout`
+
+```groovy
+stage('Checkout') {
+    steps {
+        checkout scm
+    }
+}
+```
+
+`scm` significa *Source Control Management* — referência automática ao repositório
+configurado no job do Jenkins. O `checkout scm` baixa o código do branch/commit que
+disparou o build.
+
+É o único stage que depende de configuração pela interface gráfica (apontar o repositório
+GitHub no job). Todo o resto vive no próprio Jenkinsfile.
+
+---
+
+### Stage 2 — `Install`
+
+```groovy
+stage('Install') {
+    steps {
+        sh 'npm ci'
+    }
+}
+```
+
+`sh` executa um comando shell no agente Jenkins. O `npm ci` é diferente do `npm install`:
+
+| | `npm install` | `npm ci` |
+|---|---|---|
+| Lê | `package.json` | `package-lock.json` |
+| Atualiza o lock? | Sim | Nunca |
+| Apaga `node_modules` antes? | Não | Sempre |
+| Ideal para | Desenvolvimento local | CI/CD |
+
+Em pipeline sempre se usa `npm ci` — garante que todo build instala exatamente as mesmas
+versões, sem surpresas entre máquinas ou datas diferentes.
+
+---
+
+### Stage 3 — `Test`
+
+```groovy
+stage('Test') {
+    steps {
+        sh '''
+            npm run test:summaries || true
+            npm run test:recent    || true
+            npm run test:owned     || true
+        '''
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
+        }
+    }
+}
+```
+
+Três pontos importantes:
+
+**Aspas triplas `'''`** — permitem um bloco shell multilinha. Cada linha é um comando
+independente rodando no mesmo contexto.
+
+**`|| true`** — o detalhe mais crítico do pipeline. Por padrão, se o Newman encontrar
+testes falhando ele retorna código de saída `1`, o que faria o Jenkins marcar o stage
+como falho e pular todo o restante — incluindo o e-mail de notificação. Com `|| true`
+você diz: *"independente do resultado, considere este comando como sucesso"* e o
+pipeline continua. O e-mail chega **especialmente** quando os testes falham.
+
+**`archiveArtifacts`** — arquiva os HTMLs gerados pelo Newman como artefatos do Jenkins,
+acessíveis individualmente na interface de cada build. O `allowEmptyArchive: true` evita
+erro caso nenhum HTML tenha sido gerado. Esses arquivos ficam disponíveis para download
+logo após o stage `Test`.
+
+---
+
+### Stage 4 — `Build`
+
+```groovy
+stage('Build') {
+    steps {
+        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'steam-api-tests.zip', allowEmptyArchive: true
+        }
+    }
+}
+```
+
+Atende ao requisito de **artefato de build**. O `zip -r` empacota recursivamente:
+
+| O que entra no `.zip` | Por quê |
+|---|---|
+| `*.json` | As coleções e environments Postman |
+| `reports/` | Os HTMLs já gerados pelo Newman no stage anterior |
+| `scripts/` | O `notify.py` |
+| `Dockerfile` | A definição da imagem |
+
+O stage `Build` não gera os relatórios — eles já foram gerados no stage `Test`. O `Build`
+apenas os reempacota junto com o restante do projeto, formando um pacote de entrega
+completo para download.
+
+---
+
+### Dois artefatos, dois propósitos
+
+| Artefato | Gerado em | Conteúdo | Uso |
+|---|---|---|---|
+| `reports/*.html` | Stage `Test` | HTMLs individuais do Newman | Visualizar resultados diretamente no browser |
+| `steam-api-tests.zip` | Stage `Build` | Tudo junto (coleções + relatórios + scripts) | Pacote de entrega completo |
+
+Os HTMLs também são servidos pelo **Nginx** via volume compartilhado — esse é o terceiro
+ponto de acesso, definido no `docker-compose.yml`.
+
+---
+
+## Bloco `post {}` do pipeline
+
+```groovy
+post {
+    always {
+        sh "python3 scripts/notify.py ${currentBuild.currentResult}"
+    }
+}
+```
+
+Roda **fora e depois de todos os stages**, independente do que aconteceu antes — mesmo
+que o pipeline esteja marcado como `FAILURE`.
+
+Os `post` dentro dos stages `Test` e `Build` são locais, respondem só ao stage pai.
+Este é o `post` do pipeline inteiro.
+
+### Condições disponíveis no `post`
+
+| Condição | Quando roda |
+|---|---|
+| `always` | Sempre, sem exceção |
+| `success` | Só se tudo passou |
+| `failure` | Só se algo falhou |
+| `unstable` | Se houve testes com falha mas o pipeline não quebrou |
+| `changed` | Se o resultado mudou em relação ao build anterior |
+
+### O argumento `${currentBuild.currentResult}`
+
+`currentBuild` é um objeto Groovy nativo do Jenkins com metadados do build atual.
+O `.currentResult` retorna o estado final como string: `SUCCESS`, `FAILURE`,
+`UNSTABLE` ou `ABORTED`.
+
+Esse valor é passado como argumento posicional para o `notify.py`:
+
+```python
+BUILD_STATUS = sys.argv[1] if len(sys.argv) > 1 else "DESCONHECIDO"
+```
+
+E aparece no assunto do e-mail:
+```
+[Steam API Tests] Build #42 — FAILURE
+```
+
+---
+
+## Fluxo completo em caso de falha
+
+```
+Checkout ✅ → Install ✅ → Test ❌ (testes falharam)
+                                  ↓
+                            || true mantém o pipeline vivo
+                                  ↓
+                            Build ✅ → post.always → notify.py "FAILURE"
+                                                           ↓
+                                                   E-mail chega no MailHog
+```
+
+Sem o `|| true` no stage `Test`, o pipeline encerraria com falha antes do `Build` e do
+`post.always` — o e-mail nunca chegaria justamente quando mais importa.
+
+---
+
+## Perguntas da defesa — respostas prontas
+
+**"Por que usaram `npm ci` e não `npm install`?"**
+`npm ci` lê o `package-lock.json` e nunca o atualiza — garante que todo build instala
+exatamente as mesmas versões, tornando o ambiente reproduzível.
+
+**"O que é o `|| true` e por que está ali?"**
+Evita que falhas nos testes do Newman encerrem o pipeline antes do e-mail ser enviado.
+Com `|| true`, o Jenkins considera o comando como sucesso independente do resultado.
+
+**"Por que o e-mail fica no `post` e não em um stage normal?"**
+O bloco `post` roda sempre, mesmo após falhas. Um stage normal seria pulado se o
+anterior falhasse — o e-mail não chegaria quando os testes quebram.
+
+**"O `NOTIFY_EMAIL` está no código?"**
+Não. Ele é configurado em **Manage Jenkins → Configure System → Global properties**
+e injetado em tempo de execução via `env.NOTIFY_EMAIL`. O repositório não contém
+nenhum e-mail.
+
+**"Quem gera os relatórios HTML?"**
+O Newman, durante o stage `Test`. O stage `Build` apenas os reempacota no `.zip`.
+Os HTMLs também ficam disponíveis via Nginx, servidos pelo volume compartilhado
+`reports` definido no `docker-compose.yml`.
