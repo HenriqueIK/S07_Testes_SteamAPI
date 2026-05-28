@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+
+  # Container 1: Jenkins
+  # Imagem do Docker Hub (oficial). Orquestra o pipeline.
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080" # Interface web do Jenkins
+      - "50000:50000" # Porta de agentes Jenkins
+    volumes:
+      - jenkins_home:/var/jenkins_home # Persiste configurações e jobs
+      - /var/run/docker.sock:/var/run/docker.sock # Permite Jenkins controlar Docker
+    environment:
+      - NOTIFY_EMAIL=${NOTIFY_EMAIL} # Passado via arquivo .env
+    networks:
+      - devops-net
+    depends_on:
+      - mailhog
+
+  # Container 2: Newman Runner
+  # Construído a partir do Dockerfile local. Executa os testes da Steam API.
+  newman-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: newman-runner
+    volumes:
+      - reports:/app/reports # Persiste relatórios para o Nginx
+    environment:
+      - STEAM_API_KEY=${STEAM_API_KEY} # Chave Steam via .env (nunca no código)
+      - STEAM_ID=${STEAM_ID}
+    networks:
+      - devops-net
+    # Roda os testes e encerra (não é um serviço contínuo)
+    command: ["npm", "run", "test:all"]
+
+  # Container 3: MailHog
+  # Servidor SMTP falso. Captura e-mails do Jenkins sem enviá-los de verdade.
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "1025:1025" # Porta SMTP (usada pelo notify.py)
+      - "8025:8025" # Interface web para visualizar e-mails recebidos
+    networks:
+      - devops-net
+
+  # Container 4: Nginx (servidor de relatórios)
+  # Serve os HTMLs gerados pelo Newman como páginas web acessíveis.
+  report-server:
+    image: nginx:alpine
+    container_name: report-server
+    ports:
+      - "8090:80" # Acesse em http://localhost:8090
+    volumes:
+      - reports:/usr/share/nginx/html:ro # Lê os relatórios gerados pelo newman-runner
+    networks:
+      - devops-net
+    depends_on:
+      - newman-runner
+
+# Volumes
+volumes:
+  jenkins_home: # Persiste todo estado do Jenkins entre reinicializações
+  reports: # Compartilhado entre newman-runner (escrita) e nginx (leitura)
+
+# Rede interna
+networks:
+  devops-net:
+    driver: bridge
