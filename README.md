@@ -141,7 +141,7 @@ docker build -t steam-api-tests:latest .
 S07_Testes_SteamAPI/
 ├── Dockerfile                                  # Containerização do projeto Newman
 ├── .dockerignore                               # Arquivos excluídos da imagem Docker
-├── Jenkinsfile                                 # Pipeline CI/CD (stages: Install, Test, Build, Notify)
+├── Jenkinsfile                                 # Pipeline CI/CD (stages: Setup, Checkout, Install, Test, Build, Notify)
 ├── owned-games.postman_collection.json         # Testes TC-001 a TC-008
 ├── recently-played.postman_collection.json     # Testes TC-009 a TC-014
 ├── player-summaries.postman_collection.json    # Testes TC-015 a TC-020
@@ -155,7 +155,8 @@ S07_Testes_SteamAPI/
     ├── PLANO_DEVOPS.md                         # Roteiro completo de implementação DevOps
     ├── commands.md                             # Comandos Docker úteis
     ├── explain_dockerfile.md                   # Explicações sobre o Dockerfile
-    └── explain_notify.md                       # Explicações sobre o script de notificação
+    ├── explain_notify.md                       # Explicações sobre o script de notificação
+    └── explain_docker_composer.md              # Explicações sobre o Docker Compose
 ```
 
 ---
