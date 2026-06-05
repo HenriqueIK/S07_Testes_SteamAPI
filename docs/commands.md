@@ -86,20 +86,24 @@ docker compose up --build -d
 # 2. Verificar os containers
 docker compose ps
 
-# 3. Pegar senha do Jenkins (só na primeira vez)
+# 3. Liberar permissão de diretório no Git (só precisa fazer UMA vez por máquina)
+docker exec jenkins git config --global --add safe.directory '*'
+
+# 4. Pegar senha do Jenkins (só na primeira vez)
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
-# 4. Acessar Jenkins em http://localhost:8080
+# 5. Acessar Jenkins em http://localhost:8080
 #    → Criar job Pipeline apontando para o GitHub
-#    → Rodar o pipeline
+#    → Em Manage Jenkins > Configure System: adicionar variável NOTIFY_EMAIL
+#    → Rodar o pipeline (Build Now)
 
-# 5. Verificar e-mail capturado pelo MailHog
+# 6. Verificar e-mail capturado pelo MailHog
 #    http://localhost:8025
 
-# 6. Verificar relatórios HTML servidos pelo Nginx
+# 7. Verificar relatórios HTML servidos pelo Nginx
 #    http://localhost:8090
 
-# 7. Verificar artefatos arquivados no Jenkins
+# 8. Verificar artefatos arquivados no Jenkins
 #    http://localhost:8080 → job → última build → Artefatos
 ```
 
