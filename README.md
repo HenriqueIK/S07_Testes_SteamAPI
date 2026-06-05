@@ -1,5 +1,13 @@
 # S07 - Testes Automatizados: Steam API
 
+![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js)
+![Newman](https://img.shields.io/badge/Newman-6.2.2-orange?logo=postman)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?logo=jenkins)
+![Docker Hub](https://img.shields.io/badge/Docker%20Hub-duartefrugoli%2Fsteam--api--tests-blue?logo=docker)
+![Tests](https://img.shields.io/badge/testes-20%20casos-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
 Suíte de testes automatizados para a [Steam Web API](https://steamcommunity.com/dev), desenvolvida com [Postman](https://www.postman.com/) e executável via linha de comando com [Newman](https://github.com/postmanlabs/newman).
 
 ---
