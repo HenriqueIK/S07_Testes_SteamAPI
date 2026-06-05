@@ -468,59 +468,6 @@ docker compose up -d
 [hub.docker.com/r/seuusuario/steam-api-tests](https://hub.docker.com/r/seuusuario/steam-api-tests)
 ```
 
-#### Seção: Uso de IA (OBRIGATÓRIA)
-
-```markdown
-## Uso de IA
-
-### Modelos utilizados
-- **GitHub Copilot (Claude Sonnet 4.6)** — via VS Code
-- **ChatGPT (GPT-4o)** — via browser
-
-### Para quê foram usados
-- Geração do `Dockerfile` base e ajustes de otimização
-- Esqueleto do `Jenkinsfile` e explicação das diretivas `post` e `archiveArtifacts`
-- Script `scripts/notify.py` — geração inicial e ajuste de tratamento de erros
-- Geração do `docker-compose.yml` com 4 containers
-- Debugging de erros de permissão do Docker socket no Jenkins
-- Documentação (este README e o PLANO_DEVOPS.md)
-
-### Exemplos reais de prompts usados
-
-**Prompt 1** (aceito com ajustes):
-> "Crie um Dockerfile para um projeto Node.js que usa Newman para rodar coleções
-> Postman. A imagem deve ser pequena e os relatórios HTML devem ser gerados em /app/reports."
-> *Resposta aceita — ajustamos o CMD para chamar `npm run test:all` em vez do comando Newman direto.*
-
-**Prompt 2** (aceito):
-> "Escreva um script Python que envie um e-mail via SMTP sem autenticação (MailHog).
-> O endereço de destino deve vir de variável de ambiente, nunca hardcoded."
-> *Resposta aceita sem modificações.*
-
-**Prompt 3** (ajustado):
-> "Crie um Jenkinsfile declarativo com stages: Install, Test, Build e notificação por e-mail.
-> Os relatórios devem ser arquivados como artefatos."
-> *Resposta aceita, mas o stage 'Build' foi ajustado manualmente para usar `zip` em vez
-> de `docker build`, pois o Jenkins estava sem acesso ao daemon Docker naquele momento.*
-
-**Prompt 4** (descartado):
-> "Configure o Jenkins para enviar e-mail usando o plugin Email Extension."
-> *Descartado — o professor proíbe configurar etapas do pipeline pela interface gráfica.
-> Substituímos pelo script Python independente.*
-
-### Dinâmica de uso
-A IA foi usada principalmente em pair programming: um integrante compartilhava a tela
-e todos discutiam o prompt antes de enviar. As respostas eram revisadas em grupo antes
-de commitar.
-
-### O que NÃO foi feito por IA
-- As coleções Postman e os casos de teste (TC-001 a TC-020) foram escritos manualmente
-  pelo grupo na etapa anterior da disciplina.
-- A escolha da arquitetura (MailHog + Nginx + Newman + Jenkins) foi decisão do grupo após
-  discussão sobre os requisitos.
-- Todos os commits e a organização do repositório foram feitos manualmente.
-```
-
 ---
 
 ## ETAPA 7 — Repositório GitHub
