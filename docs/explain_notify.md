@@ -99,7 +99,29 @@ post {
     always {
         sh "python3 scripts/notify.py ${currentBuild.currentResult}"
     }
+}```
+
+---
+
+## Correção importante: python3 e zip não existem no Jenkins
+
+A imagem `jenkins/jenkins:lts` é um Linux Debian mínimo — ela **não vem com `python3` nem com `zip` instalados**. Sem eles, o pipeline quebraria:
+- Stage `Build` → `zip: command not found`
+- `post.always` → `python3: command not found`
+
+A solução foi adicionar um stage `Setup` **antes** de todos os outros, que instala esses pacotes:
+
+```groovy
+stage('Setup') {
+    steps {
+        sh 'apt-get update && apt-get install -y zip python3 --no-install-recommends'
+    }
 }
+```
+
+**Por que `--no-install-recommends`?** Evita instalar pacotes extras sugeridos pelo apt, mantendo a instalação mínima e rápida.
+
+**Por que instalar no pipeline e não num Dockerfile do Jenkins?** Porque o professor exige que só o `newman-runner` tenha Dockerfile próprio. Para o Jenkins, a solução permitida é instalar via script dentro do próprio pipeline — que é exatamente o que o `apt-get` no stage `Setup` faz.
 ```
 
 Após todas as etapas (stage Test, stage Build), o Jenkins executa:

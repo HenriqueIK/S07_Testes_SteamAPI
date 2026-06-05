@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
 
   # Container 1: Jenkins
@@ -28,7 +26,8 @@ services:
       dockerfile: Dockerfile
     container_name: newman-runner
     volumes:
-      - reports:/app/reports # Persiste relatórios para o Nginx
+      - reports:/app/reports
+      - ./steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro
     environment:
       - STEAM_API_KEY=${STEAM_API_KEY} # Chave Steam via .env (nunca no código)
       - STEAM_ID=${STEAM_ID}

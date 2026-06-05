@@ -13,6 +13,14 @@ pipeline {
 
     stages {
 
+        // ── 0. Setup ───────────────────────────────────────────────────────────
+        // Instala zip e python3 no container Jenkins (não vêm na imagem padrão)
+        stage('Setup') {
+            steps {
+                sh 'apt-get update && apt-get install -y zip python3 --no-install-recommends'
+            }
+        }
+
         // ── 1. Checkout ────────────────────────────────────────────────────────
         // Único passo que pode ser configurado pela interface gráfica do Jenkins
         stage('Checkout') {

@@ -20,6 +20,25 @@ CMD ["npm", "run", "test:all"]  # comando executado quando o container inicia
 
 ---
 
+## Correção importante: o environment não entra na imagem
+
+O arquivo `steam_api.postman_environment.json` está no `.dockerignore` — ele **nunca é copiado para dentro da imagem**. Isso é intencional por segurança (contém a chave da Steam).
+
+O problema é que o Newman precisa desse arquivo para rodar os testes. A solução é montá-lo como **volume** no `docker-compose.yml` em tempo de execução:
+
+```yaml
+newman-runner:
+  volumes:
+    - reports:/app/reports
+    - ./steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro
+```
+
+**O que isso faz:** o Docker lê o arquivo da sua máquina local (`./steam_api...`) e o disponibiliza dentro do container no caminho `/app/steam_api...`. A flag `:ro` significa *read-only* — o container pode ler mas não alterar o arquivo.
+
+**Por que não colocar na imagem?** Porque a imagem vai para o Docker Hub (público). Qualquer pessoa poderia baixar a imagem e extrair a chave. O volume resolve isso: o arquivo fica só na sua máquina, nunca viaja para lugar nenhum.
+
+---
+
 ## Por que só criamos o Dockerfile do Newman e não dos outros containers?
 
 Porque os outros 3 serviços já existem como imagens prontas e oficiais no Docker Hub, mantidas pelas próprias empresas/comunidades. Não há nada para personalizar neles.

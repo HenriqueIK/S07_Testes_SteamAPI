@@ -52,6 +52,59 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 ---
 
+## Git — publicar no GitHub
+
+```bash
+# Ver o que mudou
+git status
+
+# Adicionar arquivos ao commit
+git add .
+
+# Fazer o commit
+git commit -m "mensagem do commit"
+
+# Enviar para o GitHub (primeira vez numa branch nova)
+git push -u origin nome-da-branch
+
+# Enviar para o GitHub (branches já publicadas)
+git push
+
+# Puxar mudanças do GitHub
+git pull
+```
+
+---
+
+## Fluxo completo do zero (ensaio antes da defesa)
+
+```bash
+# 1. Subir a infraestrutura do zero
+docker compose down -v
+docker compose up --build -d
+
+# 2. Verificar os containers
+docker compose ps
+
+# 3. Pegar senha do Jenkins (só na primeira vez)
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+# 4. Acessar Jenkins em http://localhost:8080
+#    → Criar job Pipeline apontando para o GitHub
+#    → Rodar o pipeline
+
+# 5. Verificar e-mail capturado pelo MailHog
+#    http://localhost:8025
+
+# 6. Verificar relatórios HTML servidos pelo Nginx
+#    http://localhost:8090
+
+# 7. Verificar artefatos arquivados no Jenkins
+#    http://localhost:8080 → job → última build → Artefatos
+```
+
+---
+
 ## Os que mais aparecem na defesa
 
 | Comando | Por que o professor pode pedir |
