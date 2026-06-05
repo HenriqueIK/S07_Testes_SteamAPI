@@ -14,10 +14,10 @@ pipeline {
     stages {
 
         // ── 0. Setup ───────────────────────────────────────────────────────────
-        // Instala zip e python3 no container Jenkins (não vêm na imagem padrão)
+        // Instala nodejs, npm, zip e python3 no container Jenkins (não vêm na imagem padrão)
         stage('Setup') {
             steps {
-                sh 'apt-get update && apt-get install -y zip python3 --no-install-recommends'
+                sh 'apt-get update && apt-get install -y zip python3 nodejs npm --no-install-recommends'
             }
         }
 
