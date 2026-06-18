@@ -3,18 +3,29 @@
 ## Docker — imagem
 
 ```bash
-# Construir a imagem a partir do Dockerfile
-docker build -t steam-api-tests:latest .
+# Construir a imagem do Newman Runner
+docker build -t steam-api-tests:latest -f Dockerfile.newman .
+
+# Construir a imagem customizada do Jenkins
+docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 
 # Listar imagens locais
 docker images
 
-# Publicar no Docker Hub
-docker tag steam-api-tests:latest seuusuario/steam-api-tests:latest
-docker push seuusuario/steam-api-tests:latest
+# Publicar no Docker Hub do projeto
+docker tag steam-api-tests:latest duartefrugoli/steam-api-tests:latest
+docker push duartefrugoli/steam-api-tests:latest
 
-# Rodar o container manualmente (fora do Compose)
-docker run --rm steam-api-tests:latest
+docker tag steam-api-jenkins:latest duartefrugoli/steam-api-jenkins:latest
+docker push duartefrugoli/steam-api-jenkins:latest
+
+# Depois de publicar uma nova imagem Jenkins, recrie o container para puxar a tag nova
+docker compose pull jenkins
+
+# Rodar o container Newman manualmente (fora do Compose)
+docker run --rm `
+  -v ${PWD}/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro `
+  steam-api-tests:latest
 ```
 
 ---
@@ -25,7 +36,7 @@ docker run --rm steam-api-tests:latest
 # Subir todos os 4 containers
 docker compose up -d
 
-# Subir e reconstruir a imagem local (após mudança no Dockerfile)
+# Subir e reconstruir as imagens locais (após mudanças nos Dockerfiles)
 docker compose up --build -d
 
 # Ver status dos containers
@@ -33,6 +44,9 @@ docker compose ps
 
 # Ver logs de um container específico
 docker compose logs -f jenkins
+
+# Corrigir permissões do workspace se o volume antigo foi criado como root
+docker exec -u root jenkins chown -R jenkins:jenkins /var/jenkins_home/workspace
 
 # Derrubar tudo
 docker compose down
@@ -102,6 +116,9 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 # 7. Verificar relatórios HTML servidos pelo Nginx
 #    http://localhost:8090
+#    http://localhost:8090/player-summaries.html
+#    http://localhost:8090/recently-played.html
+#    http://localhost:8090/owned-games.html
 
 # 8. Verificar artefatos arquivados no Jenkins
 #    http://localhost:8080 → job → última build → Artefatos

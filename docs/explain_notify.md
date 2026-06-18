@@ -99,30 +99,33 @@ post {
     always {
         sh "python3 scripts/notify.py ${currentBuild.currentResult}"
     }
-}```
+}
+```
 
 ---
 
-## Correção importante: python3 e zip não existem no Jenkins
+## Correção importante: ferramentas do Jenkins ficam no Dockerfile.jenkins
 
-A imagem `jenkins/jenkins:lts` é um Linux Debian mínimo — ela **não vem com `python3` nem com `zip` instalados**. Sem eles, o pipeline quebraria:
+A imagem `jenkins/jenkins:lts` já traz o Jenkins, mas não traz todas as ferramentas usadas pelo pipeline. Sem elas, o pipeline quebraria:
+- Stage `Install` → `npm: command not found`
 - Stage `Build` → `zip: command not found`
 - `post.always` → `python3: command not found`
 
-A solução foi adicionar um stage `Setup` **antes** de todos os outros, que instala esses pacotes:
+A solução é preparar isso na imagem Jenkins customizada, não no `Jenkinsfile`:
 
-```groovy
-stage('Setup') {
-    steps {
-        sh 'apt-get update && apt-get install -y zip python3 --no-install-recommends'
-    }
-}
+```dockerfile
+FROM jenkins/jenkins:lts
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nodejs npm python3 zip \
+    && rm -rf /var/lib/apt/lists/*
+USER jenkins
 ```
 
 **Por que `--no-install-recommends`?** Evita instalar pacotes extras sugeridos pelo apt, mantendo a instalação mínima e rápida.
 
-**Por que instalar no pipeline e não num Dockerfile do Jenkins?** Porque o professor exige que só o `newman-runner` tenha Dockerfile próprio. Para o Jenkins, a solução permitida é instalar via script dentro do próprio pipeline — que é exatamente o que o `apt-get` no stage `Setup` faz.
-```
+**Por que não entra no `package-lock.json`?** Porque `nodejs`, `npm`, `zip` e `python3` são pacotes do sistema operacional da imagem. O `package-lock.json` só controla dependências Node do projeto, como `newman` e `newman-reporter-htmlextra`.
 
 Após todas as etapas (stage Test, stage Build), o Jenkins executa:
 - `python3 scripts/notify.py SUCCESS` — se tudo passou

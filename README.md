@@ -118,9 +118,10 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 
 ### Imagem Docker Hub
 
-[hub.docker.com/r/duartefrugoli/steam-api-tests](https://hub.docker.com/r/duartefrugoli/steam-api-tests)
+- Newman Runner: [hub.docker.com/r/duartefrugoli/steam-api-tests](https://hub.docker.com/r/duartefrugoli/steam-api-tests)
+- Jenkins customizado: [hub.docker.com/r/duartefrugoli/steam-api-jenkins](https://hub.docker.com/r/duartefrugoli/steam-api-jenkins)
 
-Para rodar os testes diretamente da imagem publicada, monte o arquivo de environment local:
+Essa imagem executa os testes Newman. Para rodar os testes diretamente da imagem publicada, monte o arquivo de environment local:
 
 ```bash
 # Linux/macOS
@@ -137,7 +138,8 @@ docker run --rm `
 ### Construir a imagem localmente
 
 ```bash
-docker build -t steam-api-tests:latest .
+docker build -t steam-api-tests:latest -f Dockerfile.newman .
+docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 ```
 
 ---
@@ -146,9 +148,10 @@ docker build -t steam-api-tests:latest .
 
 ```
 S07_Testes_SteamAPI/
-├── Dockerfile                                  # Containerização do projeto Newman
+├── Dockerfile.newman                           # Containerização do projeto Newman
+├── Dockerfile.jenkins                          # Imagem Jenkins com nodejs, npm, zip e python3
 ├── .dockerignore                               # Arquivos excluídos da imagem Docker
-├── Jenkinsfile                                 # Pipeline CI/CD (stages: Setup, Checkout, Install, Test, Build, Notify)
+├── Jenkinsfile                                 # Pipeline CI/CD (stages: Checkout, Install, Test, Build, Notify)
 ├── owned-games.postman_collection.json         # Testes TC-001 a TC-008
 ├── recently-played.postman_collection.json     # Testes TC-009 a TC-014
 ├── player-summaries.postman_collection.json    # Testes TC-015 a TC-020
@@ -161,7 +164,7 @@ S07_Testes_SteamAPI/
 └── docs/
     ├── PLANO_DEVOPS.md                         # Roteiro completo de implementação DevOps
     ├── commands.md                             # Comandos Docker úteis
-    ├── explain_dockerfile.md                   # Explicações sobre o Dockerfile
+    ├── explain_dockerfile.md                   # Explicações sobre os Dockerfiles
     ├── explain_notify.md                       # Explicações sobre o script de notificação
     └── explain_docker_composer.md              # Explicações sobre o Docker Compose
 ```
@@ -186,7 +189,7 @@ Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utiliza
 - Identificação de bugs estruturais (URL malformada, chave hardcoded, variáveis incorretas)
 - Sugestão de casos de teste robustos e independentes do usuário
 - Padronização de nomes de arquivos e scripts
-- Geração do `Dockerfile`, `Jenkinsfile` e `scripts/notify.py`
+- Geração do `Dockerfile.newman`, `Dockerfile.jenkins`, `Jenkinsfile` e `scripts/notify.py`
 - Elaboração deste README
 
 Todo o código gerado foi revisado, validado e ajustado pelos membros do grupo antes de ser commitado.

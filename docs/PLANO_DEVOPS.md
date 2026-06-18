@@ -15,7 +15,7 @@
 │                                                              │
 │  ┌─────────────┐     dispara      ┌──────────────────────┐  │
 │  │   Jenkins   │ ─────────────►  │   Newman Runner      │  │
-│  │  (container)│                  │  (Dockerfile local)  │  │
+│  │  (container)│                  │ (Dockerfile.newman)  │  │
 │  └──────┬──────┘                  └──────────┬───────────┘  │
 │         │ envia e-mail                        │ gera         │
 │         ▼                                     ▼ relatórios   │
@@ -30,41 +30,41 @@
 
 **Por quê essa arquitetura?**
 - O projeto já tem testes prontos com Newman — aproveitamos isso.
-- Jenkins orquestra o pipeline; ele não roda os testes direto, delega ao container Newman.
+- Jenkins orquestra o pipeline e roda os testes Newman no próprio agente Jenkins.
 - MailHog é um servidor SMTP falso (ideal para dev/lab): captura os e-mails sem precisar
   de conta real — perfeito para demonstrar a etapa de notificação.
 - Nginx serve os relatórios HTML já gerados pelo Newman, cumprindo o requisito de
   artefatos acessíveis.
-- Total: **4 containers** ✔, comunicação entre Jenkins ↔ MailHog e Jenkins ↔ Newman ✔,
+- Total: **4 containers** ✔, comunicação entre Jenkins ↔ MailHog e relatórios compartilhados via volume ✔,
   volume persistindo relatórios ✔.
 
 ---
 
 ## Checklist geral
 
-- [ ] **ETAPA 1** — Dockerfile do Newman Runner
+- [ ] **ETAPA 1** — Dockerfile.newman do Newman Runner
 - [ ] **ETAPA 2** — Script de notificação por e-mail
 - [ ] **ETAPA 3** — Jenkinsfile (pipeline completo)
 - [ ] **ETAPA 4** — Docker Compose (4 containers)
-- [ ] **ETAPA 5** — Publicar imagem no Docker Hub
+- [ ] **ETAPA 5** — Publicar imagens no Docker Hub
 - [ ] **ETAPA 6** — Atualizar o README (seção "Uso de IA" e demais requisitos)
 - [ ] **ETAPA 7** — Publicar no repositório do time no GitHub
 - [ ] **ETAPA 8** — Testar o pipeline completo ao vivo
 
 ---
 
-## ETAPA 1 — Dockerfile do Newman Runner
+## ETAPA 1 — Dockerfile.newman do Newman Runner
 
 ### Para que serve?
-O `Dockerfile` transforma o projeto (coleções Postman + dependências Node) em uma
+O `Dockerfile.newman` transforma o projeto (coleções Postman + dependências Node) em uma
 **imagem Docker imutável**. Assim, os testes sempre rodam no mesmo ambiente, em qualquer
 máquina, sem depender de Node instalado localmente.
 
 ### O que criar?
-Crie o arquivo `Dockerfile` na raiz do projeto:
+Crie o arquivo `Dockerfile.newman` na raiz do projeto:
 
 ```dockerfile
-# Dockerfile
+# Dockerfile.newman
 FROM node:20-alpine
 
 # Define diretório de trabalho dentro do container
@@ -212,6 +212,15 @@ pipeline {
             }
         }
 
+        stage('Prepare') {
+            steps {
+                sh '''
+                    mkdir -p reports /shared-reports
+                    cp /var/jenkins_home/steam_api.postman_environment.json steam_api.postman_environment.json
+                '''
+            }
+        }
+
         // ── 2. Instalar dependências ───────────────────────────────────────────
         stage('Install') {
             steps {
@@ -223,14 +232,25 @@ pipeline {
         // Newman roda as 3 coleções e gera relatórios HTML em reports/
         stage('Test') {
             steps {
-                sh '''
-                    npm run test:summaries || true
-                    npm run test:recent    || true
-                    npm run test:owned     || true
-                '''
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set +e
+                        npm run test:summaries
+                        status_summaries=$?
+                        npm run test:recent
+                        status_recent=$?
+                        npm run test:owned
+                        status_owned=$?
+
+                        if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
+                            exit 1
+                        fi
+                    '''
+                }
             }
             post {
                 always {
+                    sh 'cp -f reports/*.html /shared-reports/ 2>/dev/null || true'
                     // Arquiva os relatórios HTML como artefatos no Jenkins
                     archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
                 }
@@ -241,7 +261,7 @@ pipeline {
         // Cria um .zip com as coleções + relatórios para artefato de entrega
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
             }
             post {
                 always {
@@ -265,8 +285,9 @@ pipeline {
 | Stage | O que faz | Por que é necessário |
 |---|---|---|
 | `Checkout` | Baixa o código do GitHub | Ponto de entrada do pipeline |
+| `Prepare` | Copia o environment montado e cria pastas de relatório | Mantém a chave fora do Git e prepara o volume do Nginx |
 | `Install` | Roda `npm ci` | Garante dependências exatas do `package-lock.json` |
-| `Test` | Executa as 3 coleções Newman e gera HTMLs | Requisito principal: cobertura de testes |
+| `Test` | Executa as 3 coleções Newman e gera HTMLs | Requisito principal: cobertura de testes, marcando falhas como `UNSTABLE` |
 | `Build` | Empacota tudo em `.zip` | Requisito: artefato de build no Jenkins |
 | `post.always` | Chama `notify.py` | Requisito: notificação por e-mail em qualquer resultado |
 
@@ -293,16 +314,17 @@ version: '3.9'
 services:
 
   # ── Container 1: Jenkins ────────────────────────────────────────────────────
-  # Imagem do Docker Hub (oficial). Orquestra o pipeline.
+  # Imagem customizada do Jenkins com Node.js, npm, zip e Python.
   jenkins:
-    image: jenkins/jenkins:lts
+    image: seuusuario/steam-api-jenkins:latest
     container_name: jenkins
     ports:
       - "8080:8080"    # Interface web do Jenkins
       - "50000:50000"  # Porta de agentes Jenkins
     volumes:
       - jenkins_home:/var/jenkins_home          # Persiste configurações e jobs
-      - /var/run/docker.sock:/var/run/docker.sock  # Permite Jenkins controlar Docker
+      - reports:/shared-reports                 # Compartilha relatórios com o Nginx
+      - ./steam_api.postman_environment.json:/var/jenkins_home/steam_api.postman_environment.json:ro
     environment:
       - NOTIFY_EMAIL=${NOTIFY_EMAIL}            # Passado via arquivo .env
     networks:
@@ -311,14 +333,16 @@ services:
       - mailhog
 
   # ── Container 2: Newman Runner ──────────────────────────────────────────────
-  # Construído a partir do Dockerfile local. Executa os testes da Steam API.
+  # Construído a partir do Dockerfile.newman local. Executa os testes da Steam API.
   newman-runner:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.newman
+    image: seuusuario/steam-api-tests:latest
     container_name: newman-runner
     volumes:
       - reports:/app/reports                   # Persiste relatórios para o Nginx
+      - ./steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro
     environment:
       - STEAM_API_KEY=${STEAM_API_KEY}         # Chave Steam via .env (nunca no código)
       - STEAM_ID=${STEAM_ID}
@@ -392,7 +416,7 @@ docker compose logs -f jenkins
 ## ETAPA 5 — Publicar no Docker Hub
 
 ### Para que serve?
-O requisito exige que a imagem esteja publicamente disponível no Docker Hub, com link
+O requisito exige que as imagens estejam publicamente disponíveis no Docker Hub, com links
 entregue junto ao repositório.
 
 ### Passo a passo
@@ -403,20 +427,25 @@ docker login
 
 # 2. Construa a imagem com a tag do seu usuário Docker Hub
 #    Substitua 'seuusuario' pelo usuário real do grupo
-docker build -t seuusuario/steam-api-tests:latest .
+docker build -t seuusuario/steam-api-tests:latest -f Dockerfile.newman .
+docker build -t seuusuario/steam-api-jenkins:latest -f Dockerfile.jenkins .
 
 # 3. Envie para o Docker Hub
 docker push seuusuario/steam-api-tests:latest
+docker push seuusuario/steam-api-jenkins:latest
 
 # 4. (Opcional mas recomendado) Envie também com tag de versão
 docker tag seuusuario/steam-api-tests:latest seuusuario/steam-api-tests:1.0.0
 docker push seuusuario/steam-api-tests:1.0.0
+docker tag seuusuario/steam-api-jenkins:latest seuusuario/steam-api-jenkins:1.0.0
+docker push seuusuario/steam-api-jenkins:1.0.0
 ```
 
 ### Resultado
 O link ficará no formato:
 ```
 https://hub.docker.com/r/seuusuario/steam-api-tests
+https://hub.docker.com/r/seuusuario/steam-api-jenkins
 ```
 Inclua esse link no README e na entrega do Teams.
 
@@ -478,7 +507,7 @@ docker compose up -d
 - [ ] Repositório **público**
 - [ ] Todos os integrantes com commits relevantes (não só um pushando tudo)
 - [ ] `.gitignore` atualizado (excluir `.env`, `steam_api.postman_environment.json`, `node_modules`, `reports/`)
-- [ ] Todos os arquivos novos commitados: `Dockerfile`, `.dockerignore`, `Jenkinsfile`, `docker-compose.yml`, `.env.example`, `scripts/notify.py`
+- [ ] Todos os arquivos novos commitados: `Dockerfile.newman`, `Dockerfile.jenkins`, `.dockerignore`, `Jenkinsfile`, `docker-compose.yml`, `.env.example`, `scripts/notify.py`
 
 ### Estrutura final esperada do repositório
 
@@ -488,7 +517,8 @@ S07_Testes_SteamAPI/
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
-├── Dockerfile
+├── Dockerfile.newman
+├── Dockerfile.jenkins
 ├── Jenkinsfile
 ├── package.json
 ├── package-lock.json
@@ -557,7 +587,8 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 | Arquivo | O que é |
 |---|---|
-| `Dockerfile` | Containeriza o projeto Newman |
+| `Dockerfile.newman` | Containeriza o projeto Newman |
+| `Dockerfile.jenkins` | Customiza a imagem Jenkins com nodejs, npm, zip e python3 |
 | `.dockerignore` | Evita copiar arquivos desnecessários para a imagem |
 | `Jenkinsfile` | Pipeline completo de CI/CD |
 | `scripts/notify.py` | Script de notificação por e-mail |

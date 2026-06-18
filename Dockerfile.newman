@@ -1,0 +1,21 @@
+# Parte de uma imagem Linux com Node.js ja instalado.
+FROM node:20-alpine
+
+# Define /app como pasta de trabalho dentro do container.
+WORKDIR /app
+
+# Copia so os arquivos de dependencia primeiro. Isso ajuda a aproveitar o cache
+# do Docker, evitando reinstalar dependencias se so o codigo mudou.
+COPY package.json package-lock.json ./
+
+# Instala newman e newman-reporter-htmlextra.
+RUN npm ci
+
+# Copia o restante (colecoes Postman, scripts, etc.).
+COPY . .
+
+# Garante que a pasta de relatorios existe.
+RUN mkdir -p reports
+
+# Comando executado quando o container inicia.
+CMD ["npm", "run", "test:all"]

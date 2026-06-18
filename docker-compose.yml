@@ -1,17 +1,17 @@
 services:
 
   # Container 1: Jenkins
-  # Imagem do Docker Hub (oficial). Orquestra o pipeline.
+  # Imagem customizada do Jenkins com Node.js, npm, zip e Python.
   jenkins:
-    image: jenkins/jenkins:lts
+    image: duartefrugoli/steam-api-jenkins:latest
     container_name: jenkins
-    user: root
     ports:
       - "8080:8080" # Interface web do Jenkins
       - "50000:50000" # Porta de agentes Jenkins
     volumes:
       - jenkins_home:/var/jenkins_home # Persiste configurações e jobs
-      - /var/run/docker.sock:/var/run/docker.sock # Permite Jenkins controlar Docker
+      - reports:/shared-reports # Compartilha os relatórios do Jenkins com o Nginx
+      - ./steam_api.postman_environment.json:/var/jenkins_home/steam_api.postman_environment.json:ro
     environment:
       - NOTIFY_EMAIL=${NOTIFY_EMAIL} # Passado via arquivo .env
     networks:
@@ -20,11 +20,12 @@ services:
       - mailhog
 
   # Container 2: Newman Runner
-  # Construído a partir do Dockerfile local. Executa os testes da Steam API.
+  # Construído a partir do Dockerfile.newman local. Executa os testes da Steam API.
   newman-runner:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.newman
+    image: duartefrugoli/steam-api-tests:latest
     container_name: newman-runner
     volumes:
       - reports:/app/reports

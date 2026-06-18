@@ -24,14 +24,15 @@ Define o uso da especificação Compose na versão 3.9, compatível com Docker E
 
 ```yaml
 jenkins:
-  image: jenkins/jenkins:lts
+  image: duartefrugoli/steam-api-jenkins:latest
   container_name: jenkins
   ports:
     - "8080:8080"
     - "50000:50000"
   volumes:
     - jenkins_home:/var/jenkins_home
-    - /var/run/docker.sock:/var/run/docker.sock
+    - reports:/shared-reports
+    - ./steam_api.postman_environment.json:/var/jenkins_home/steam_api.postman_environment.json:ro
   environment:
     - NOTIFY_EMAIL=${NOTIFY_EMAIL}
   networks:
@@ -44,15 +45,16 @@ jenkins:
 
 | Detalhe | Explicação |
 |---|---|
-| `image: jenkins/jenkins:lts` | Usa a imagem oficial do Docker Hub na versão LTS (Long-Term Support), mais estável |
+| `image: duartefrugoli/steam-api-jenkins:latest` | Puxa do Docker Hub a imagem Jenkins customizada com `nodejs`, `npm`, `zip` e `python3` |
 | `ports: 8080` | Interface web do Jenkins, acessível em `http://localhost:8080` |
 | `ports: 50000` | Porta de comunicação com agentes Jenkins remotos (JNLP) |
 | `jenkins_home:/var/jenkins_home` | Persiste jobs, plugins e configurações entre reinicializações do container |
-| `/var/run/docker.sock` | Monta o socket do Docker do host, permitindo que o Jenkins crie e gerencie outros containers diretamente |
+| `reports:/shared-reports` | Compartilha com o Nginx os relatórios gerados no pipeline Jenkins |
+| `steam_api.postman_environment.json` | Disponibiliza para o Jenkins o environment real sem colocar a chave no Git |
 | `NOTIFY_EMAIL` | E-mail de destino para notificações, lido do arquivo `.env` — nunca hardcoded no código |
 | `depends_on: mailhog` | Garante que o servidor de e-mail suba antes do Jenkins, evitando falhas de conexão SMTP na inicialização |
 
-> **Por que montar o Docker socket?** Essa técnica é chamada de *Docker-in-Docker (DinD)*. Ela permite que o Jenkins execute comandos `docker` dentro do container como se estivesse no host, sem precisar de uma instalação separada do Docker.
+> No fluxo atual, o Jenkins não precisa montar o Docker socket. Ele se comunica com o MailHog para notificação e compartilha relatórios com o Nginx pelo volume `reports`.
 
 ---
 
@@ -62,10 +64,11 @@ jenkins:
 newman-runner:
   build:
     context: .
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.newman
   container_name: newman-runner
   volumes:
     - reports:/app/reports
+    - ./steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro
   environment:
     - STEAM_API_KEY=${STEAM_API_KEY}
     - STEAM_ID=${STEAM_ID}
@@ -78,9 +81,10 @@ newman-runner:
 
 | Detalhe | Explicação |
 |---|---|
-| `build: context: .` | Constrói a imagem localmente a partir do `Dockerfile` na raiz do projeto, ao invés de baixar do Hub |
+| `build: context: .` | Constrói a imagem localmente a partir do `Dockerfile.newman`, ao invés de baixar do Hub |
 | `reports:/app/reports` | Escreve os relatórios HTML gerados pelo Newman neste volume, que será lido pelo Nginx |
-| `STEAM_API_KEY` e `STEAM_ID` | Credenciais da Steam injetadas via variáveis de ambiente a partir do `.env` — nunca expostas no código-fonte |
+| `steam_api.postman_environment.json` | Environment real montado como somente leitura, fora da imagem e fora do Git |
+| `STEAM_API_KEY` e `STEAM_ID` | Variáveis disponíveis para extensão do fluxo; os scripts atuais usam o arquivo de environment do Postman |
 | `command: ["npm", "run", "test:all"]` | Sobrescreve o CMD do Dockerfile para executar o script de testes. Quando o script termina, o container encerra |
 
 > **Container one-shot:** Diferente dos outros serviços, o `newman-runner` não fica rodando em loop. Ele executa sua tarefa e para — um padrão comum para containers de CI que realizam uma tarefa pontual.
@@ -152,7 +156,7 @@ volumes:
 | Volume | Usado por | Finalidade |
 |---|---|---|
 | `jenkins_home` | Jenkins | Persiste toda a configuração do Jenkins, jobs, plugins e histórico de builds entre reinicializações |
-| `reports` | Newman Runner (escrita) + Nginx (leitura) | Canal de comunicação entre os dois containers — relatórios gerados pelos testes ficam disponíveis para o servidor web |
+| `reports` | Jenkins/Newman Runner (escrita) + Nginx (leitura) | Canal de comunicação para relatórios HTML, permitindo que o Nginx publique os resultados gerados |
 
 Ambos são **named volumes** gerenciados pelo Docker, o que garante persistência mesmo que os containers sejam removidos (`docker-compose down` sem a flag `--volumes`).
 
@@ -183,7 +187,8 @@ Todos os containers compartilham a rede `devops-net` do tipo **bridge**. Isso si
 4. Docker sobe report-server (Nginx) → serve os relatórios via HTTP
 
 Jenkins, durante o pipeline:
-  └─▶ aciona newman-runner
+  └─▶ roda npm ci e os scripts Newman no workspace
+  └─▶ copia reports/*.html para o volume reports em /shared-reports
   └─▶ envia notificação via notify.py → mailhog:1025
   └─▶ MailHog captura o e-mail → disponível em http://localhost:8025
 ```

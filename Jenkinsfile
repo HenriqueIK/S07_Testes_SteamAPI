@@ -13,15 +13,7 @@ pipeline {
 
     stages {
 
-        // ── 0. Setup ───────────────────────────────────────────────────────────
-        // Instala nodejs, npm, zip e python3 no container Jenkins (não vêm na imagem padrão)
-        stage('Setup') {
-            steps {
-                sh 'apt-get update && apt-get install -y zip python3 nodejs npm --no-install-recommends'
-            }
-        }
-
-        // ── 1. Checkout ────────────────────────────────────────────────────────
+        // 1. Checkout
         // Único passo que pode ser configurado pela interface gráfica do Jenkins
         stage('Checkout') {
             steps {
@@ -29,7 +21,18 @@ pipeline {
             }
         }
 
-        // ── 2. Instalar dependências ───────────────────────────────────────────
+        // 2. Preparar workspace
+        // O environment real fica fora do Git; o Compose monta uma cópia segura no Jenkins.
+        stage('Prepare') {
+            steps {
+                sh '''
+                    mkdir -p reports /shared-reports
+                    cp /var/jenkins_home/steam_api.postman_environment.json steam_api.postman_environment.json
+                '''
+            }
+        }
+
+        // 3. Instalar dependências
         // npm ci garante instalação exata conforme o package-lock.json
         stage('Install') {
             steps {
@@ -37,31 +40,41 @@ pipeline {
             }
         }
 
-        // ── 3. Executar testes ─────────────────────────────────────────────────
+        // 4. Executar testes
         // Newman roda as 3 coleções e gera relatórios HTML em reports/
-        // O '|| true' evita que uma falha de teste interrompa o pipeline antes
-        // da notificação por e-mail ser enviada
+        // catchError marca falhas como UNSTABLE sem impedir artefatos e notificação
         stage('Test') {
             steps {
-                sh '''
-                    npm run test:summaries || true
-                    npm run test:recent    || true
-                    npm run test:owned     || true
-                '''
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set +e
+                        npm run test:summaries
+                        status_summaries=$?
+                        npm run test:recent
+                        status_recent=$?
+                        npm run test:owned
+                        status_owned=$?
+
+                        if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
+                            exit 1
+                        fi
+                    '''
+                }
             }
             post {
                 always {
+                    sh 'cp -f reports/*.html /shared-reports/ 2>/dev/null || true'
                     // Arquiva os relatórios HTML como artefatos acessíveis no Jenkins
                     archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
                 }
             }
         }
 
-        // ── 4. Build / empacotamento ───────────────────────────────────────────
+        // 5. Build / empacotamento
         // Gera um .zip com as coleções + relatórios + scripts como artefato de entrega
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
             }
             post {
                 always {
@@ -71,7 +84,7 @@ pipeline {
         }
     }
 
-    // ── 5. Notificação por e-mail (pós-pipeline) ───────────────────────────────
+    // 6. Notificação por e-mail (pós-pipeline)
     // Roda SEMPRE — independentemente de sucesso ou falha nos stages anteriores
     post {
         always {

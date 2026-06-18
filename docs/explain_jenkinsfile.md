@@ -26,6 +26,15 @@ pipeline {
             }
         }
 
+        stage('Prepare') {
+            steps {
+                sh '''
+                    mkdir -p reports /shared-reports
+                    cp /var/jenkins_home/steam_api.postman_environment.json steam_api.postman_environment.json
+                '''
+            }
+        }
+
         stage('Install') {
             steps {
                 sh 'npm ci'
@@ -34,14 +43,25 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh '''
-                    npm run test:summaries || true
-                    npm run test:recent    || true
-                    npm run test:owned     || true
-                '''
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set +e
+                        npm run test:summaries
+                        status_summaries=$?
+                        npm run test:recent
+                        status_recent=$?
+                        npm run test:owned
+                        status_owned=$?
+
+                        if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
+                            exit 1
+                        fi
+                    '''
+                }
             }
             post {
                 always {
+                    sh 'cp -f reports/*.html /shared-reports/ 2>/dev/null || true'
                     archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
                 }
             }
@@ -49,7 +69,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
             }
             post {
                 always {
@@ -126,7 +146,30 @@ GitHub no job). Todo o resto vive no próprio Jenkinsfile.
 
 ---
 
-### Stage 2 — `Install`
+### Stage 2 — `Prepare`
+
+```groovy
+stage('Prepare') {
+    steps {
+        sh '''
+            mkdir -p reports /shared-reports
+            cp /var/jenkins_home/steam_api.postman_environment.json steam_api.postman_environment.json
+        '''
+    }
+}
+```
+
+Esse stage prepara o workspace depois do checkout. O arquivo real
+`steam_api.postman_environment.json` não fica no Git; ele é montado pelo Docker Compose
+em `/var/jenkins_home/steam_api.postman_environment.json` e copiado para o workspace para
+que os comandos Newman consigam usar `-e steam_api.postman_environment.json`.
+
+O diretório `/shared-reports` é o volume `reports` montado no Jenkins e no Nginx. Quando
+o pipeline copia os HTMLs para lá, eles ficam disponíveis em `http://localhost:8090`.
+
+---
+
+### Stage 3 — `Install`
 
 ```groovy
 stage('Install') {
@@ -150,49 +193,65 @@ versões, sem surpresas entre máquinas ou datas diferentes.
 
 ---
 
-### Stage 3 — `Test`
+### Stage 4 — `Test`
 
 ```groovy
 stage('Test') {
     steps {
-        sh '''
-            npm run test:summaries || true
-            npm run test:recent    || true
-            npm run test:owned     || true
-        '''
+        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+            sh '''
+                set +e
+                npm run test:summaries
+                status_summaries=$?
+                npm run test:recent
+                status_recent=$?
+                npm run test:owned
+                status_owned=$?
+
+                if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
+                    exit 1
+                fi
+            '''
+        }
     }
     post {
         always {
+            sh 'cp -f reports/*.html /shared-reports/ 2>/dev/null || true'
             archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
         }
     }
 }
 ```
 
-Três pontos importantes:
+Quatro pontos importantes:
 
 **Aspas triplas `'''`** — permitem um bloco shell multilinha. Cada linha é um comando
 independente rodando no mesmo contexto.
 
-**`|| true`** — o detalhe mais crítico do pipeline. Por padrão, se o Newman encontrar
-testes falhando ele retorna código de saída `1`, o que faria o Jenkins marcar o stage
-como falho e pular todo o restante — incluindo o e-mail de notificação. Com `|| true`
-você diz: *"independente do resultado, considere este comando como sucesso"* e o
-pipeline continua. O e-mail chega **especialmente** quando os testes falham.
+**`set +e` + status por comando** — permite rodar as três coleções mesmo se uma delas
+falhar. Cada status é guardado em variável e, no final, o script retorna falha se pelo
+menos uma suíte falhou.
+
+**`catchError(buildResult: 'UNSTABLE')`** — deixa o Jenkins registrar que houve falha de
+teste, mas mantém o pipeline vivo para arquivar relatórios, gerar o `.zip` e enviar e-mail.
+Assim a build não mente como `SUCCESS`, mas também não interrompe a etapa de evidências.
 
 **`archiveArtifacts`** — arquiva os HTMLs gerados pelo Newman como artefatos do Jenkins,
 acessíveis individualmente na interface de cada build. O `allowEmptyArchive: true` evita
 erro caso nenhum HTML tenha sido gerado. Esses arquivos ficam disponíveis para download
 logo após o stage `Test`.
 
+**Cópia para `/shared-reports`** — publica os mesmos HTMLs no volume lido pelo Nginx,
+permitindo visualizar os relatórios em `http://localhost:8090`.
+
 ---
 
-### Stage 4 — `Build`
+### Stage 5 — `Build`
 
 ```groovy
 stage('Build') {
     steps {
-        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile'
+        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
     }
     post {
         always {
@@ -209,7 +268,8 @@ Atende ao requisito de **artefato de build**. O `zip -r` empacota recursivamente
 | `*.json` | As coleções e environments Postman |
 | `reports/` | Os HTMLs já gerados pelo Newman no stage anterior |
 | `scripts/` | O `notify.py` |
-| `Dockerfile` | A definição da imagem |
+| `Dockerfile.newman` | A definição da imagem dos testes Newman |
+| `Dockerfile.jenkins` | A definição da imagem customizada do Jenkins |
 
 O stage `Build` não gera os relatórios — eles já foram gerados no stage `Test`. O `Build`
 apenas os reempacota junto com o restante do projeto, formando um pacote de entrega
@@ -277,17 +337,17 @@ E aparece no assunto do e-mail:
 ## Fluxo completo em caso de falha
 
 ```
-Checkout ✅ → Install ✅ → Test ❌ (testes falharam)
-                                  ↓
-                            || true mantém o pipeline vivo
-                                  ↓
-                            Build ✅ → post.always → notify.py "FAILURE"
-                                                           ↓
-                                                   E-mail chega no MailHog
+Checkout ✅ → Prepare ✅ → Install ✅ → Test ❌ (testes falharam)
+                                             ↓
+                                  catchError marca UNSTABLE
+                                             ↓
+                       Build ✅ → post.always → notify.py "UNSTABLE"
+                                                      ↓
+                                              E-mail chega no MailHog
 ```
 
-Sem o `|| true` no stage `Test`, o pipeline encerraria com falha antes do `Build` e do
-`post.always` — o e-mail nunca chegaria justamente quando mais importa.
+Sem o `catchError`, o pipeline poderia encerrar antes do `Build` e do `post.always`.
+Com ele, a falha de teste aparece no resultado, mas as evidências continuam sendo geradas.
 
 ---
 
@@ -297,9 +357,10 @@ Sem o `|| true` no stage `Test`, o pipeline encerraria com falha antes do `Build
 `npm ci` lê o `package-lock.json` e nunca o atualiza — garante que todo build instala
 exatamente as mesmas versões, tornando o ambiente reproduzível.
 
-**"O que é o `|| true` e por que está ali?"**
-Evita que falhas nos testes do Newman encerrem o pipeline antes do e-mail ser enviado.
-Com `|| true`, o Jenkins considera o comando como sucesso independente do resultado.
+**"Por que usaram `catchError` no stage de testes?"**
+Para que falhas do Newman não interrompam a geração de artefatos e o envio de e-mail.
+A diferença para `|| true` é que o Jenkins não mente: a build fica `UNSTABLE` quando há
+falha de teste.
 
 **"Por que o e-mail fica no `post` e não em um stage normal?"**
 O bloco `post` roda sempre, mesmo após falhas. Um stage normal seria pulado se o

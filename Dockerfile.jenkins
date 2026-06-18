@@ -1,0 +1,19 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Ferramentas usadas pelo Jenkinsfile:
+# - nodejs/npm: npm ci e npm run test:*
+# - zip: gera o artefato steam-api-tests.zip
+# - python3: executa scripts/notify.py
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        nodejs \
+        npm \
+        python3 \
+        zip \
+    && mkdir -p /shared-reports \
+    && chown -R jenkins:jenkins /shared-reports \
+    && rm -rf /var/lib/apt/lists/*
+
+USER jenkins

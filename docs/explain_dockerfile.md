@@ -1,10 +1,10 @@
-# Explicações — Dockerfile e .dockerignore
+# Explicações — Dockerfiles e .dockerignore
 
 ## O que foi feito na ETAPA 1
 
 ### Os dois arquivos criados
 
-**`Dockerfile`** — é uma receita de como montar um ambiente. Cada linha é uma instrução:
+**`Dockerfile.newman`** — é a receita da imagem que executa os testes Newman:
 
 ```dockerfile
 FROM node:20-alpine        # parte de uma imagem Linux com Node.js já instalado
@@ -14,6 +14,13 @@ RUN npm ci                 # instala newman e newman-reporter-htmlextra
 COPY . .                   # copia o restante (coleções Postman, scripts, etc.)
 RUN mkdir -p reports       # garante que a pasta de relatórios existe
 CMD ["npm", "run", "test:all"]  # comando executado quando o container inicia
+```
+
+**`Dockerfile.jenkins`** — é a receita da imagem Jenkins customizada:
+
+```dockerfile
+FROM jenkins/jenkins:lts
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm python3 zip
 ```
 
 **`.dockerignore`** — funciona igual ao `.gitignore`, mas para o Docker. Impede que arquivos desnecessários ou sensíveis entrem na imagem.
@@ -39,9 +46,9 @@ newman-runner:
 
 ---
 
-## Por que só criamos o Dockerfile do Newman e não dos outros containers?
+## Por que temos Dockerfile.newman e Dockerfile.jenkins?
 
-Porque os outros 3 serviços já existem como imagens prontas e oficiais no Docker Hub, mantidas pelas próprias empresas/comunidades. Não há nada para personalizar neles.
+Porque os dois containers executam responsabilidades diferentes e precisam de ambientes diferentes.
 
 **Newman Runner — precisa de Dockerfile próprio** porque:
 - A imagem base (`node:20-alpine`) não tem nada do projeto
@@ -50,9 +57,13 @@ Porque os outros 3 serviços já existem como imagens prontas e oficiais no Dock
 - Precisamos definir o comando padrão (`npm run test:all`)
 - É **o nosso software** — a lógica de negócio do projeto
 
-**Jenkins — não precisa de Dockerfile** porque:
-- `jenkins/jenkins:lts` já vem com Jenkins completo e funcional
-- Só precisamos configurar via variável de ambiente (`NOTIFY_EMAIL`)
+**Jenkins — precisa de `Dockerfile.jenkins`** porque:
+- `jenkins/jenkins:lts` já vem com Jenkins completo, mas não com todas as ferramentas do pipeline
+- O stage `Install` usa `npm ci`, então o agente precisa de `nodejs` e `npm`
+- O stage `Build` usa `zip`
+- O `post.always` usa `python3 scripts/notify.py`
+
+Essas ferramentas não entram no `package-lock.json`, porque não são pacotes Node do projeto. Elas são dependências do sistema operacional da imagem Jenkins.
 
 **MailHog — não precisa de Dockerfile** porque:
 - `mailhog/mailhog` já é um servidor SMTP pronto para uso
@@ -68,7 +79,7 @@ Você cria um `Dockerfile` quando precisa **partir de uma imagem base e adiciona
 
 ## Por que precisa do .dockerignore?
 
-O `.dockerignore` existe porque o comando `COPY . .` no Dockerfile copia **tudo** da pasta para dentro da imagem — sem ele, entrariam coisas que não devem.
+O `.dockerignore` existe porque o comando `COPY . .` no `Dockerfile.newman` copia **tudo** da pasta para dentro da imagem — sem ele, entrariam coisas que não devem.
 
 | Entrada | Motivo |
 |---|---|
