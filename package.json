@@ -7,7 +7,7 @@
     "test:summaries": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/player-summaries.html --insecure",
     "test:recent": "newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/recently-played.html --insecure",
     "test:owned": "newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/owned-games.html --insecure",
-    "test:all": "newman run player-summaries.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/player-summaries.html --insecure & newman run recently-played.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/recently-played.html --insecure & newman run owned-games.postman_collection.json -e \"steam_api.postman_environment.json\" --reporters cli,htmlextra --reporter-htmlextra-export reports/owned-games.html --insecure"
+    "test:all": "npm run test:summaries && npm run test:recent && npm run test:owned"
   },
   "repository": {
     "type": "git",

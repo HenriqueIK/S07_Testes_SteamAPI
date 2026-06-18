@@ -41,24 +41,32 @@ pipeline {
         }
 
         // 4. Executar testes
-        // Newman roda as 3 coleções e gera relatórios HTML em reports/
+        // Newman roda as 3 coleções em paralelo e gera relatórios HTML em reports/
         // catchError marca falhas como UNSTABLE sem impedir artefatos e notificação
         stage('Test') {
-            steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '''
-                        set +e
-                        npm run test:summaries
-                        status_summaries=$?
-                        npm run test:recent
-                        status_recent=$?
-                        npm run test:owned
-                        status_owned=$?
+            parallel {
+                stage('Player Summaries') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:summaries'
+                        }
+                    }
+                }
 
-                        if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
-                            exit 1
-                        fi
-                    '''
+                stage('Recently Played') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:recent'
+                        }
+                    }
+                }
+
+                stage('Owned Games') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:owned'
+                        }
+                    }
                 }
             }
             post {
@@ -74,7 +82,7 @@ pipeline {
         // Gera um .zip com as coleções + relatórios + scripts como artefato de entrega
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
             }
             post {
                 always {

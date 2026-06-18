@@ -1,11 +1,8 @@
 # Comandos importantes do projeto
 
-## Docker — imagem
+## Docker - imagem Jenkins
 
 ```bash
-# Construir a imagem do Newman Runner
-docker build -t steam-api-tests:latest -f Dockerfile.newman .
-
 # Construir a imagem customizada do Jenkins
 docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 
@@ -13,31 +10,38 @@ docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 docker images
 
 # Publicar no Docker Hub do projeto
-docker tag steam-api-tests:latest duartefrugoli/steam-api-tests:latest
-docker push duartefrugoli/steam-api-tests:latest
-
 docker tag steam-api-jenkins:latest duartefrugoli/steam-api-jenkins:latest
 docker push duartefrugoli/steam-api-jenkins:latest
 
-# Depois de publicar uma nova imagem Jenkins, recrie o container para puxar a tag nova
+# Depois de publicar uma nova imagem Jenkins, puxe e recrie o container
 docker compose pull jenkins
-
-# Rodar o container Newman manualmente (fora do Compose)
-docker run --rm `
-  -v ${PWD}/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro `
-  steam-api-tests:latest
+docker compose up -d --force-recreate jenkins
 ```
 
 ---
 
-## Docker Compose — infraestrutura
+## Newman manual com imagem pronta
+
+```bash
+# Rodar uma collection manualmente sem Dockerfile Newman próprio
+docker run --rm `
+  -v ${PWD}:/etc/newman `
+  -w /etc/newman `
+  postman/newman:latest run player-summaries.postman_collection.json -e steam_api.postman_environment.json --insecure
+```
+
+> Para gerar os relatórios HTML com `newman-reporter-htmlextra`, use `npm ci` + `npm run test:*` ou rode a pipeline no Jenkins. A imagem oficial `postman/newman` é usada no Compose apenas como container pronto do Docker Hub.
+
+---
+
+## Docker Compose - infraestrutura
 
 ```bash
 # Subir todos os 4 containers
 docker compose up -d
 
-# Subir e reconstruir as imagens locais (após mudanças nos Dockerfiles)
-docker compose up --build -d
+# Recriar containers após mudanças no docker-compose.yml
+docker compose up -d --force-recreate
 
 # Ver status dos containers
 docker compose ps
@@ -57,7 +61,7 @@ docker compose down -v
 
 ---
 
-## Jenkins — container
+## Jenkins - container
 
 ```bash
 # Pegar senha inicial do Jenkins (só na primeira vez)
@@ -66,7 +70,7 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 ---
 
-## Git — publicar no GitHub
+## Git - publicar no GitHub
 
 ```bash
 # Ver o que mudou
@@ -95,7 +99,8 @@ git pull
 ```bash
 # 1. Subir a infraestrutura do zero
 docker compose down -v
-docker compose up --build -d
+docker compose pull
+docker compose up -d
 
 # 2. Verificar os containers
 docker compose ps
@@ -107,9 +112,9 @@ docker exec jenkins git config --global --add safe.directory '*'
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 # 5. Acessar Jenkins em http://localhost:8080
-#    → Criar job Pipeline apontando para o GitHub
-#    → Em Manage Jenkins > Configure System: adicionar variável NOTIFY_EMAIL
-#    → Rodar o pipeline (Build Now)
+#    -> Criar job Pipeline apontando para o GitHub
+#    -> Em Manage Jenkins > Configure System: adicionar variável NOTIFY_EMAIL
+#    -> Rodar o pipeline (Build Now)
 
 # 6. Verificar e-mail capturado pelo MailHog
 #    http://localhost:8025
@@ -121,7 +126,7 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 #    http://localhost:8090/owned-games.html
 
 # 8. Verificar artefatos arquivados no Jenkins
-#    http://localhost:8080 → job → última build → Artefatos
+#    http://localhost:8080 -> job -> última build -> Artefatos
 ```
 
 ---
@@ -133,4 +138,4 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 | `docker compose ps` | "Mostre os 4 containers rodando" |
 | `docker compose logs -f jenkins` | "Mostre o pipeline executando" |
 | `docker images` | "Mostre a imagem que vocês criaram" |
-| `docker compose down -v` / `up --build` | "Suba do zero na minha frente" |
+| `docker compose down -v` / `up -d` | "Suba do zero na minha frente" |

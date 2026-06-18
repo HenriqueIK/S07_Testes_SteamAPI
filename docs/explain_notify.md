@@ -117,9 +117,13 @@ A solução é preparar isso na imagem Jenkins customizada, não no `Jenkinsfile
 FROM jenkins/jenkins:lts
 
 USER root
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm python3 zip \
-    && rm -rf /var/lib/apt/lists/*
+ && apt-get install -y --no-install-recommends nodejs npm python3 zip \
+ && mkdir -p /shared-reports \
+ && chown -R jenkins:jenkins /shared-reports \
+ && rm -rf /var/lib/apt/lists/*
+
 USER jenkins
 ```
 

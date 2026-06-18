@@ -42,21 +42,29 @@ pipeline {
         }
 
         stage('Test') {
-            steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '''
-                        set +e
-                        npm run test:summaries
-                        status_summaries=$?
-                        npm run test:recent
-                        status_recent=$?
-                        npm run test:owned
-                        status_owned=$?
+            parallel {
+                stage('Player Summaries') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:summaries'
+                        }
+                    }
+                }
 
-                        if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
-                            exit 1
-                        fi
-                    '''
+                stage('Recently Played') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:recent'
+                        }
+                    }
+                }
+
+                stage('Owned Games') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh 'npm run test:owned'
+                        }
+                    }
                 }
             }
             post {
@@ -69,7 +77,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
+                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
             }
             post {
                 always {
@@ -197,21 +205,29 @@ versões, sem surpresas entre máquinas ou datas diferentes.
 
 ```groovy
 stage('Test') {
-    steps {
-        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-            sh '''
-                set +e
-                npm run test:summaries
-                status_summaries=$?
-                npm run test:recent
-                status_recent=$?
-                npm run test:owned
-                status_owned=$?
+    parallel {
+        stage('Player Summaries') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'npm run test:summaries'
+                }
+            }
+        }
 
-                if [ "$status_summaries" -ne 0 ] || [ "$status_recent" -ne 0 ] || [ "$status_owned" -ne 0 ]; then
-                    exit 1
-                fi
-            '''
+        stage('Recently Played') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'npm run test:recent'
+                }
+            }
+        }
+
+        stage('Owned Games') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'npm run test:owned'
+                }
+            }
         }
     }
     post {
@@ -225,12 +241,12 @@ stage('Test') {
 
 Quatro pontos importantes:
 
-**Aspas triplas `'''`** — permitem um bloco shell multilinha. Cada linha é um comando
-independente rodando no mesmo contexto.
+**`parallel {}`** — faz o Jenkins executar as três collections ao mesmo tempo. Na interface
+do Jenkins, cada collection aparece como um substage separado dentro do stage `Test`.
 
-**`set +e` + status por comando** — permite rodar as três coleções mesmo se uma delas
-falhar. Cada status é guardado em variável e, no final, o script retorna falha se pelo
-menos uma suíte falhou.
+**Um `catchError` por collection** — permite que uma falha em `Player Summaries`, por
+exemplo, não cancele imediatamente `Recently Played` ou `Owned Games`. Cada substage
+termina sua execução e o resultado final da build fica `UNSTABLE` se algum teste falhar.
 
 **`catchError(buildResult: 'UNSTABLE')`** — deixa o Jenkins registrar que houve falha de
 teste, mas mantém o pipeline vivo para arquivar relatórios, gerar o `.zip` e enviar e-mail.
@@ -251,7 +267,7 @@ permitindo visualizar os relatórios em `http://localhost:8090`.
 ```groovy
 stage('Build') {
     steps {
-        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.newman Dockerfile.jenkins'
+        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
     }
     post {
         always {
@@ -268,7 +284,6 @@ Atende ao requisito de **artefato de build**. O `zip -r` empacota recursivamente
 | `*.json` | As coleções e environments Postman |
 | `reports/` | Os HTMLs já gerados pelo Newman no stage anterior |
 | `scripts/` | O `notify.py` |
-| `Dockerfile.newman` | A definição da imagem dos testes Newman |
 | `Dockerfile.jenkins` | A definição da imagem customizada do Jenkins |
 
 O stage `Build` não gera os relatórios — eles já foram gerados no stage `Test`. O `Build`

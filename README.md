@@ -4,7 +4,7 @@
 ![Newman](https://img.shields.io/badge/Newman-6.2.2-orange?logo=postman)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
 ![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?logo=jenkins)
-![Docker Hub](https://img.shields.io/badge/Docker%20Hub-duartefrugoli%2Fsteam--api--tests-blue?logo=docker)
+![Docker Hub](https://img.shields.io/badge/Docker%20Hub-duartefrugoli%2Fsteam--api--jenkins-blue?logo=docker)
 ![Tests](https://img.shields.io/badge/testes-20%20casos-brightgreen)
 
 Suíte de testes automatizados para a [Steam Web API](https://steamcommunity.com/dev), desenvolvida com [Postman](https://www.postman.com/) e executável via linha de comando com [Newman](https://github.com/postmanlabs/newman).
@@ -59,7 +59,7 @@ Abra o arquivo `steam_api.postman_environment.json` e substitua os placeholders:
 | `npm run test:summaries` | Roda os testes de perfil do jogador (TC-015 a TC-020) |
 | `npm run test:recent` | Roda os testes de jogos recentes (TC-009 a TC-014) |
 | `npm run test:owned` | Roda os testes de jogos possuídos (TC-001 a TC-008) |
-| `npm run test:all` | Roda todas as collections em paralelo |
+| `npm run test:all` | Roda todas as collections em sequência |
 
 Após cada execução, um relatório HTML é gerado automaticamente na pasta `reports/` (ignorada pelo `.gitignore`).
 
@@ -118,27 +118,14 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 
 ### Imagem Docker Hub
 
-- Newman Runner: [hub.docker.com/r/duartefrugoli/steam-api-tests](https://hub.docker.com/r/duartefrugoli/steam-api-tests)
 - Jenkins customizado: [hub.docker.com/r/duartefrugoli/steam-api-jenkins](https://hub.docker.com/r/duartefrugoli/steam-api-jenkins)
+- Newman Runner: usa a imagem pública pronta [postman/newman](https://hub.docker.com/r/postman/newman)
 
-Essa imagem executa os testes Newman. Para rodar os testes diretamente da imagem publicada, monte o arquivo de environment local:
-
-```bash
-# Linux/macOS
-docker run --rm \
-  -v $(pwd)/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro \
-  duartefrugoli/steam-api-tests:latest
-
-# Windows (PowerShell)
-docker run --rm `
-  -v ${PWD}/steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro `
-  duartefrugoli/steam-api-tests:latest
-```
+O único Dockerfile do projeto é o `Dockerfile.jenkins`, usado para criar uma imagem Jenkins com `nodejs`, `npm`, `zip` e `python3`. O Newman não tem Dockerfile próprio neste projeto: as dependências Node ficam no `package-lock.json` e são instaladas pelo Jenkins com `npm ci`.
 
 ### Construir a imagem localmente
 
 ```bash
-docker build -t steam-api-tests:latest -f Dockerfile.newman .
 docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 ```
 
@@ -148,7 +135,6 @@ docker build -t steam-api-jenkins:latest -f Dockerfile.jenkins .
 
 ```
 S07_Testes_SteamAPI/
-├── Dockerfile.newman                           # Containerização do projeto Newman
 ├── Dockerfile.jenkins                          # Imagem Jenkins com nodejs, npm, zip e python3
 ├── .dockerignore                               # Arquivos excluídos da imagem Docker
 ├── Jenkinsfile                                 # Pipeline CI/CD (stages: Checkout, Install, Test, Build, Notify)
@@ -164,7 +150,7 @@ S07_Testes_SteamAPI/
 └── docs/
     ├── PLANO_DEVOPS.md                         # Roteiro completo de implementação DevOps
     ├── commands.md                             # Comandos Docker úteis
-    ├── explain_dockerfile.md                   # Explicações sobre os Dockerfiles
+    ├── explain_dockerfile.md                   # Explicações sobre o Dockerfile Jenkins
     ├── explain_notify.md                       # Explicações sobre o script de notificação
     └── explain_docker_composer.md              # Explicações sobre o Docker Compose
 ```
@@ -189,7 +175,7 @@ Este projeto utilizou IA generativa como apoio no desenvolvimento. Foram utiliza
 - Identificação de bugs estruturais (URL malformada, chave hardcoded, variáveis incorretas)
 - Sugestão de casos de teste robustos e independentes do usuário
 - Padronização de nomes de arquivos e scripts
-- Geração do `Dockerfile.newman`, `Dockerfile.jenkins`, `Jenkinsfile` e `scripts/notify.py`
+- Geração do `Dockerfile.jenkins`, `Jenkinsfile` e `scripts/notify.py`
 - Elaboração deste README
 
 Todo o código gerado foi revisado, validado e ajustado pelos membros do grupo antes de ser commitado.

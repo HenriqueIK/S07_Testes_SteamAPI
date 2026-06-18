@@ -20,23 +20,18 @@ services:
       - mailhog
 
   # Container 2: Newman Runner
-  # Construído a partir do Dockerfile.newman local. Executa os testes da Steam API.
+  # Imagem pronta do Docker Hub. O pipeline principal roda Newman dentro do Jenkins.
   newman-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile.newman
-    image: duartefrugoli/steam-api-tests:latest
+    image: postman/newman:latest
     container_name: newman-runner
+    working_dir: /etc/newman
     volumes:
-      - reports:/app/reports
-      - ./steam_api.postman_environment.json:/app/steam_api.postman_environment.json:ro
-    environment:
-      - STEAM_API_KEY=${STEAM_API_KEY} # Chave Steam via .env (nunca no código)
-      - STEAM_ID=${STEAM_ID}
+      - .:/etc/newman:ro
     networks:
       - devops-net
-    # Roda os testes e encerra (não é um serviço contínuo)
-    command: ["npm", "run", "test:all"]
+    # Mantém o quarto container ativo sem exigir um Dockerfile próprio do Newman.
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["newman --version && tail -f /dev/null"]
 
   # Container 3: MailHog
   # Servidor SMTP falso. Captura e-mails do Jenkins sem enviá-los de verdade.
@@ -57,16 +52,16 @@ services:
     ports:
       - "8090:80" # Acesse em http://localhost:8090
     volumes:
-      - reports:/usr/share/nginx/html:ro # Lê os relatórios gerados pelo newman-runner
+      - reports:/usr/share/nginx/html:ro # Lê os relatórios gerados pelo Jenkins
     networks:
       - devops-net
     depends_on:
-      - newman-runner
+      - jenkins
 
 # Volumes
 volumes:
   jenkins_home: # Persiste todo estado do Jenkins entre reinicializações
-  reports: # Compartilhado entre newman-runner (escrita) e nginx (leitura)
+  reports: # Compartilhado entre Jenkins (escrita) e Nginx (leitura)
 
 # Rede interna
 networks:
