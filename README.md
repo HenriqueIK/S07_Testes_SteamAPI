@@ -119,7 +119,6 @@ Testa o endpoint `/IPlayerService/GetRecentlyPlayedGames/v0001/`.
 ### Imagem Docker Hub
 
 - Jenkins customizado: [hub.docker.com/r/duartefrugoli/steam-api-jenkins](https://hub.docker.com/r/duartefrugoli/steam-api-jenkins)
-- Newman Runner: usa a imagem pública pronta [postman/newman](https://hub.docker.com/r/postman/newman)
 
 O único Dockerfile do projeto é o `Dockerfile.jenkins`, usado para criar uma imagem Jenkins com `nodejs`, `npm`, `zip` e `python3`. O Newman não tem Dockerfile próprio neste projeto: as dependências Node ficam no `package-lock.json` e são instaladas pelo Jenkins com `npm ci`.
 
