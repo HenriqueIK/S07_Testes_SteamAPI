@@ -79,10 +79,18 @@ pipeline {
         }
 
         // 5. Build / empacotamento
-        // Gera um .zip com as coleções + relatórios + scripts como artefato de entrega
+        // Gera um .zip seguro sem incluir o environment real com chave da Steam
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
+                sh '''
+                    zip -r steam-api-tests.zip \
+                        owned-games.postman_collection.json \
+                        recently-played.postman_collection.json \
+                        player-summaries.postman_collection.json \
+                        steam-api.postman_environment.example.json \
+                        package.json package-lock.json \
+                        reports/ scripts/ Dockerfile.jenkins docker-compose.yml README.md
+                '''
             }
             post {
                 always {

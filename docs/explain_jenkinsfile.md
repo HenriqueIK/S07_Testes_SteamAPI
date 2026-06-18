@@ -77,7 +77,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
+                sh '''
+                    zip -r steam-api-tests.zip \
+                        owned-games.postman_collection.json \
+                        recently-played.postman_collection.json \
+                        player-summaries.postman_collection.json \
+                        steam-api.postman_environment.example.json \
+                        package.json package-lock.json \
+                        reports/ scripts/ Dockerfile.jenkins docker-compose.yml README.md
+                '''
             }
             post {
                 always {
@@ -267,7 +275,15 @@ permitindo visualizar os relatórios em `http://localhost:8090`.
 ```groovy
 stage('Build') {
     steps {
-        sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
+        sh '''
+            zip -r steam-api-tests.zip \
+                owned-games.postman_collection.json \
+                recently-played.postman_collection.json \
+                player-summaries.postman_collection.json \
+                steam-api.postman_environment.example.json \
+                package.json package-lock.json \
+                reports/ scripts/ Dockerfile.jenkins docker-compose.yml README.md
+        '''
     }
     post {
         always {
@@ -281,10 +297,13 @@ Atende ao requisito de **artefato de build**. O `zip -r` empacota recursivamente
 
 | O que entra no `.zip` | Por quê |
 |---|---|
-| `*.json` | As coleções e environments Postman |
+| `owned-games.postman_collection.json`, `recently-played.postman_collection.json`, `player-summaries.postman_collection.json` | As coleções Postman |
+| `steam-api.postman_environment.example.json` | Modelo de environment sem chave real |
+| `package.json`, `package-lock.json` | Scripts e dependências Node reproduzíveis |
 | `reports/` | Os HTMLs já gerados pelo Newman no stage anterior |
 | `scripts/` | O `notify.py` |
 | `Dockerfile.jenkins` | A definição da imagem customizada do Jenkins |
+| `docker-compose.yml`, `README.md` | Infraestrutura local e documentação principal |
 
 O stage `Build` não gera os relatórios — eles já foram gerados no stage `Test`. O `Build`
 apenas os reempacota junto com o restante do projeto, formando um pacote de entrega

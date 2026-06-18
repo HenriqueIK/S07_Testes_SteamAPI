@@ -142,7 +142,15 @@ Fluxo da pipeline:
 O `.zip` deve incluir apenas arquivos existentes do projeto:
 
 ```groovy
-sh 'zip -r steam-api-tests.zip *.json reports/ scripts/ Dockerfile.jenkins'
+sh '''
+    zip -r steam-api-tests.zip \
+        owned-games.postman_collection.json \
+        recently-played.postman_collection.json \
+        player-summaries.postman_collection.json \
+        steam-api.postman_environment.example.json \
+        package.json package-lock.json \
+        reports/ scripts/ Dockerfile.jenkins docker-compose.yml README.md
+'''
 ```
 
 ---
