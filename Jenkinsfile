@@ -9,12 +9,10 @@ pipeline {
         SMTP_HOST = "mailhog"
         SMTP_PORT = "1025"
         BUILD_URL = "${env.BUILD_URL}"
+        NEWMAN_CONTAINER = "newman-runner"
     }
 
     stages {
-
-        // 1. Checkout
-        // Único passo que pode ser configurado pela interface gráfica do Jenkins
         stage('Checkout') {
             steps {
                 checkout scm
@@ -28,6 +26,12 @@ pipeline {
                 sh '''
                     mkdir -p reports /shared-reports
                     cp /var/jenkins_home/steam_api.postman_environment.json steam_api.postman_environment.json
+
+                    echo "Copiando enviroment para container Newman"
+                    docker cp steam_api.postman_environment.json ${NEWMAN_CONTAINER}:/etc/newman/ || true
+
+                    echo "Verificando conectividade com Newman"
+                    docker exec ${NEWMAN_CONTAINER} newman --version
                 '''
             }
         }
@@ -41,40 +45,72 @@ pipeline {
         }
 
         // 4. Executar testes
-        // Newman roda as 3 coleções em paralelo e gera relatórios HTML em reports/
         // catchError marca falhas como UNSTABLE sem impedir artefatos e notificação
-        stage('Test') {
-            parallel {
-                stage('Player Summaries') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh 'npm run test:summaries'
-                        }
-                    }
-                }
+            stage('Test - Player Summaries') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    // Executa o script dentro do container do newman usando os arquivos mapeados nele
+                    sh '''
+                    echo "Executando testes: Player Summaries em ${NEWMAN_CONTAINER}"
+                    docker exec -t ${NEWMAN_CONTAINER} \
+                    newman run "/etc/newman/player-summaries.postman_collection.json" \
+                    -e "/etc/newman/steam_api.postman_environment.json" \
+                    --reporters cli,htmlextra \
+                    --reporter-htmlextra-export /reports/player-summaries.html \
+                    --insecure
 
-                stage('Recently Played') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh 'npm run test:recent'
-                        }
-                    }
-                }
-
-                stage('Owned Games') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh 'npm run test:owned'
-                        }
-                    }
+                    echo "Player Summaries concluído"
+                    '''
                 }
             }
-            post {
-                always {
-                    sh 'cp -f reports/*.html /shared-reports/ 2>/dev/null || true'
-                    // Arquiva os relatórios HTML como artefatos acessíveis no Jenkins
-                    archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
+        }
+
+        stage('Test - Recently Played') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                    echo "Executando testes: Recently Played em ${NEWMAN_CONTAINER}"
+                    docker exec ${NEWMAN_CONTAINER} \
+                    newman run "/etc/newman/recently-played.postman_collection.json" \
+                    -e "/etc/newman/steam_api.postman_environment.json" \
+                    --reporters cli,htmlextra \
+                    --reporter-htmlextra-export /reports/recently-played.html \
+                    --insecure
+
+                    echo "Recently Played concluído"
+                    '''
                 }
+            }
+        }
+
+        stage('Test - Owned Games') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                    echo "Executando testes: Owned Games em ${NEWMAN_CONTAINER}"
+                    docker exec ${NEWMAN_CONTAINER} \
+                    newman run "/etc/newman/owned-games.postman_collection.json" \
+                    -e "/etc/newman/steam_api.postman_environment.json" \
+                    --reporters cli,htmlextra \
+                    --reporter-htmlextra-export /reports/owned-games.html \
+                    --insecure
+
+                    echo "Owned Games concluído"
+                    '''
+                }
+            }
+        }
+
+        post {
+            always {
+                sh '''
+                echo "Copiando relatorios do container Newman para Jenkins"
+                docker cp ${NEWMAN_CONTAINER}:/reports/. reports/ 2>/dev/null || true
+                echo "Verificando relatorios copiados"
+                ls -lah reports/ || true
+                '''
+
+                archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true
             }
         }
 

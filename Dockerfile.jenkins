@@ -12,8 +12,10 @@ RUN apt-get update \
         npm \
         python3 \
         zip \
+        docker.io \
     && mkdir -p /shared-reports \
     && chown -R jenkins:jenkins /shared-reports \
+    && usermod -aG docker jenkins \
     && rm -rf /var/lib/apt/lists/*
 
 USER jenkins

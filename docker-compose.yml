@@ -1,10 +1,11 @@
+version: "3.8"
 services:
-
   # Container 1: Jenkins
   # Imagem customizada do Jenkins com Node.js, npm, zip e Python.
   jenkins:
     image: duartefrugoli/steam-api-jenkins:latest
     container_name: jenkins
+    privileged: true
     ports:
       - "8080:8080" # Interface web do Jenkins
       - "50000:50000" # Porta de agentes Jenkins
@@ -12,12 +13,15 @@ services:
       - jenkins_home:/var/jenkins_home # Persiste configurações e jobs
       - reports:/shared-reports # Compartilha os relatórios do Jenkins com o Nginx
       - ./steam_api.postman_environment.json:/var/jenkins_home/steam_api.postman_environment.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NOTIFY_EMAIL=${NOTIFY_EMAIL} # Passado via arquivo .env
     networks:
       - devops-net
     depends_on:
       - mailhog
+      - newman-runner
+    user: "jenkins:root"
 
   # Container 2: Newman Runner
   # Imagem pronta do Docker Hub. O pipeline principal roda Newman dentro do Jenkins.
@@ -27,11 +31,14 @@ services:
     working_dir: /etc/newman
     volumes:
       - .:/etc/newman:ro
+      - reports:/reports
     networks:
       - devops-net
     # Mantém o quarto container ativo sem exigir um Dockerfile próprio do Newman.
     entrypoint: ["/bin/sh", "-c"]
     command: ["newman --version && tail -f /dev/null"]
+    labels:
+      description: "Container que executa os testes Newman dentro do Jenkins."
 
   # Container 3: MailHog
   # Servidor SMTP falso. Captura e-mails do Jenkins sem enviá-los de verdade.
